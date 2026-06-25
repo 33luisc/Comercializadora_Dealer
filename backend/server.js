@@ -14,6 +14,11 @@ app.get('/api/health', (req, res) => {
     });
 });
 
+// Ruta para la raíz del sitio
+app.get('/', (req, res) => {
+    res.send('¡Bienvenido al servidor de Comercializadora Dealer!');
+});
+
 // Inicializar el servidor
 app.listen(PORT, () => {
     console.log(`🚀 Servidor corriendo en http://localhost:${PORT}`);
