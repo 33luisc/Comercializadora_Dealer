@@ -24,15 +24,44 @@ const db = new sqlite3.Database('./comercializadora.db', (err) => {
     else console.log('📦 Conectado con éxito a SQLite (comercializadora.db)');
 });
 
-// Crear la tabla si no existe
+// Crear las tablas si no existen (Estructura robusta de auditoría)
 db.serialize(() => {
+    // 1. Tabla principal de afiliados (mantiene la red fija)
     db.run(`
         CREATE TABLE IF NOT EXISTS afiliados (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             nombre TEXT NOT NULL,
             id_patrocinador INTEGER,
-            ruta_de_red TEXT,
-            utilidad_propia REAL DEFAULT 0
+            ruta_de_red TEXT
+        )
+    `);
+
+    // 2. NUEVA: Historial de transacciones del mes (Sumas y restas)
+    db.run(`
+        CREATE TABLE IF NOT EXISTS transacciones (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id_afiliado INTEGER NOT NULL,
+            monto REAL NOT NULL,
+            descripcion TEXT,
+            fecha TEXT DEFAULT (datetime('now', 'localtime')),
+            FOREIGN KEY(id_afiliado) REFERENCES afiliados(id)
+        )
+    `);
+
+    // 3. NUEVA: Histórico congelado de cierres mensuales
+    db.run(`
+        CREATE TABLE IF NOT EXISTS historico_periodos (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            periodo TEXT NOT NULL, -- Ejemplo: "2026-06"
+            id_afiliado INTEGER NOT NULL,
+            nombre TEXT NOT NULL,
+            nivel INTEGER DEFAULT 0,
+            estado TEXT NOT NULL,
+            utilidad_propia REAL DEFAULT 0,
+            comision_propia REAL DEFAULT 0,
+            comision_por_red REAL DEFAULT 0,
+            bono_liderazgo REAL DEFAULT 0,
+            comision_total REAL DEFAULT 0
         )
     `);
 });
@@ -130,86 +159,146 @@ function procesarCalculosMLM(afiliados) {
 // ENDPOINTS / RUTAS DE LA API
 // ==========================================
 
-// 1. Obtener todos los afiliados con cálculos del mes en tiempo real
+// ==========================================
+// ENDPOINTS ACTUALIZADOS CON AUDITORÍA Y CIERRE
+// ==========================================
+
+// 1. Obtener afiliados con utilidad calculada desde sus transacciones
 app.get('/api/afiliados', (req, res) => {
-    const query = `SELECT * FROM afiliados`;
+    // Agrupamos y sumamos las transacciones de cada afiliado para el mes en curso
+    const query = `
+        SELECT a.*, COALESCE(SUM(t.monto), 0) as utilidad_propia
+        FROM afiliados a
+        LEFT JOIN transacciones t ON a.id = t.id_afiliado
+        GROUP BY a.id
+    `;
+    
     db.all(query, [], (err, rows) => {
         if (err) return res.status(500).json({ error: err.message });
         
-        // Pasamos las filas de la base de datos por el motor matemático
         const calculados = procesarCalculosMLM(rows);
         res.json(calculados);
     });
 });
 
-// 2. Registrar un nuevo afiliado (Desde el Formulario Frontend)
-// (CON COMPROBACIÓN DE ERRORES Y TOPES)
+// 2. Registrar nuevo afiliado (Inicia con $0 en transacciones)
 app.post('/api/afiliados', (req, res) => {
-    const { nombre, id_patrocinador, utilidad_propia } = req.body;
-    const utilidad = parseFloat(utilidad_propia) || 0;
+    const { nombre, id_patrocinador } = req.body;
 
-    // 1. Validación básica de datos de entrada
     if (!nombre || nombre.trim() === '') {
         return res.status(400).json({ error: 'El nombre del afiliado es obligatorio.' });
     }
-    if (utilidad < 0) {
-        return res.status(400).json({ error: 'La utilidad no puede ser un valor negativo.' });
-    }
 
-    // CASO A: Es un Líder Raíz (Sin patrocinador)
-    if (!id_patrocinador) {
-        const queryRaiz = `INSERT INTO afiliados (nombre, id_patrocinador, ruta_de_red, utilidad_propia) VALUES (?, null, ?, ?)`;
-        db.run(queryRaiz, [nombre, 'temp', utilidad], function(err) {
-            if (err) return res.status(500).json({ error: err.message });
-            
-            const realPath = `/${this.lastID}/`;
-            db.run(`UPDATE afiliados SET ruta_de_red = ? WHERE id = ?`, [realPath, this.lastID], (updateErr) => {
-                if (updateErr) return res.status(500).json({ error: updateErr.message });
-                return res.status(201).json({ message: 'Líder Raíz registrado con éxito', id: this.lastID });
-            });
-        });
-    } 
-    // CASO B: Tiene Patrocinador Directo
-    else {
-        const idPatrocinadorInt = parseInt(id_patrocinador);
+    const registrarHijo = (idPadre, rutaPadre) => {
+        db.get(`SELECT COUNT(*) as total_directos FROM afiliados WHERE id_patrocinador = ?`, [idPadre], (countErr, row) => {
+            if (countErr) return res.status(500).json({ error: countErr.message });
+            if (idPadre && row.total_directos >= 15) {
+                return res.status(400).json({ error: `El patrocinador (ID: ${idPadre}) ya alcanzó el límite de 15 directos.` });
+            }
 
-        // 2. Validación de consistencia: No puede ser su propio patrocinador
-        // Nota: En la creación esto se previene porque el ID nuevo aún no existe, 
-        // pero lo dejamos listo como buena práctica de control lógico.
-        
-        // 3. Verificar si el patrocinador existe y cuántos directos tiene actualmente
-        db.get(`SELECT ruta_de_red FROM afiliados WHERE id = ?`, [idPatrocinadorInt], (err, padre) => {
-            if (err) return res.status(500).json({ error: err.message });
-            if (!padre) return res.status(400).json({ error: 'El patrocinador seleccionado no existe en el sistema.' });
+            const queryInsert = `INSERT INTO afiliados (nombre, id_patrocinador, ruta_de_red) VALUES (?, ?, 'temp')`;
+            db.run(queryInsert, [nombre, idPadre], function(insertErr) {
+                if (insertErr) return res.status(500).json({ error: insertErr.message });
 
-            // Contar cuántos hijos directos tiene ya ese patrocinador
-            db.get(`SELECT COUNT(*) as total_directos FROM afiliados WHERE id_patrocinador = ?`, [idPatrocinadorInt], (countErr, row) => {
-                if (countErr) return res.status(500).json({ error: countErr.message });
-
-                // REGLA DEL NEGOCIO: Máximo 15 referidos directos
-                if (row.total_directos >= 15) {
-                    return res.status(400).json({ 
-                        error: `Validación MLM: El patrocinador (ID: ${idPatrocinadorInt}) ya alcanzó el límite máximo de 15 referidos directos.` 
-                    });
-                }
-
-                // Si pasa todas las aduanas, procedemos a insertar el registro
-                const queryHijo = `INSERT INTO afiliados (nombre, id_patrocinador, ruta_de_red, utilidad_propia) VALUES (?, ?, ?, ?)`;
-                db.run(queryHijo, [nombre, idPatrocinadorInt, 'temp', utilidad], function(insertErr) {
-                    if (insertErr) return res.status(500).json({ error: insertErr.message });
-
-                    const nuevaRuta = `${padre.ruta_de_red}${this.lastID}/`;
-                    db.run(`UPDATE afiliados SET ruta_de_red = ? WHERE id = ?`, [nuevaRuta, this.lastID], (pathErr) => {
-                        if (pathErr) return res.status(500).json({ error: pathErr.message });
-                        return res.status(201).json({ message: 'Afiliado registrado con éxito en la red', id: this.lastID });
-                    });
+                const nuevaRuta = idPadre ? `${rutaPadre}${this.lastID}/` : `/${this.lastID}/`;
+                db.run(`UPDATE afiliados SET ruta_de_red = ? WHERE id = ?`, [nuevaRuta, this.lastID], (pathErr) => {
+                    if (pathErr) return res.status(500).json({ error: pathErr.message });
+                    res.status(201).json({ message: 'Afiliado registrado', id: this.lastID });
                 });
             });
+        });
+    };
+
+    if (!id_patrocinador) {
+        registrarHijo(null, null);
+    } else {
+        db.get(`SELECT ruta_de_red FROM afiliados WHERE id = ?`, [parseInt(id_patrocinador)], (err, padre) => {
+            if (err) return res.status(500).json({ error: err.message });
+            if (!padre) return res.status(400).json({ error: 'El patrocinador no existe.' });
+            registrarHijo(parseInt(id_patrocinador), padre.ruta_de_red);
         });
     }
 });
 
-// 3. Obtener balance global de Rentabilidad para el Administrador
+// 3. NUEVO: Registrar una transacción (Abono o Ajuste) a un afiliado
+app.post('/api/transacciones', (req, res) => {
+    const { id_afiliado, monto, descripcion } = req.body;
+    const valor = parseFloat(monto);
+
+    if (!id_afiliado || isNaN(valor)) {
+        return res.status(400).json({ error: 'ID de afiliado y monto válido son requeridos.' });
+    }
+
+    const query = `INSERT INTO transacciones (id_afiliado, monto, descripcion) VALUES (?, ?, ?)`;
+    db.run(query, [id_afiliado, valor, descripcion || 'Venta registrada'], function(err) {
+        if (err) return res.status(500).json({ error: err.message });
+        res.status(201).json({ message: 'Movimiento contable registrado con éxito.', id: this.lastID });
+    });
+});
+
+// 4. NUEVO: Ejecutar Cierre de Periodo Mensual (Congelar histórico)
+app.post('/api/cierre-mes', (req, res) => {
+    const { periodo } = req.body; // Ejemplo enviado desde frontend: "2026-06"
+
+    if (!periodo || !/^\d{4}-\d{2}$/.test(periodo)) {
+        return res.status(400).json({ error: 'El formato del periodo debe ser AAAA-MM (Ej: 2026-06).' });
+    }
+
+    // Traemos los datos actuales con sus comisiones calculadas al día de hoy
+    const query = `
+        SELECT a.*, COALESCE(SUM(t.monto), 0) as utilidad_propia
+        FROM afiliados a
+        LEFT JOIN transacciones t ON a.id = t.id_afiliado
+        GROUP BY a.id
+    `;
+
+    db.all(query, [], (err, rows) => {
+        if (err) return res.status(500).json({ error: err.message });
+        
+        const calculados = procesarCalculosMLM(rows);
+        
+        // Iniciamos transacción SQLite para asegurar que se guarde todo o nada
+        db.serialize(() => {
+            db.run("BEGIN TRANSACTION");
+
+            const stmt = db.prepare(`
+                INSERT INTO historico_periodos 
+                (periodo, id_afiliado, nombre, nivel, estado, utilidad_propia, comision_propia, comision_por_red, bono_liderazgo, comision_total)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `);
+
+            calculados.forEach(u => {
+                stmt.run([
+                    periodo, u.id, u.nombre, u.nivel, u.estado, 
+                    u.utilidad_propia, u.comision_propia, u.comision_por_red, u.bono_liderazgo, u.comision_total
+                ]);
+            });
+
+            stmt.finalize();
+
+            // Limpiamos la tabla de transacciones actuales para arrancar el próximo mes desde $0
+            db.run(`DELETE FROM transacciones`, [], (delErr) => {
+                if (delErr) {
+                    db.run("ROLLBACK");
+                    return res.status(500).json({ error: 'Error al limpiar el mes en curso' });
+                }
+                
+                db.run("COMMIT");
+                res.json({ message: `¡Periodo ${periodo} cerrado con éxito! Las utilidades han vuelto a $0.` });
+            });
+        });
+    });
+});
+
+// 5. Ver Historial de un periodo cerrado anterior
+app.get('/api/historico/:periodo', (req, res) => {
+    db.all(`SELECT * FROM historico_periodos WHERE periodo = ?`, [req.params.periodo], (err, rows) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json(rows);
+    });
+});
+
+// 6. Obtener balance global de Rentabilidad para el Administrador
 app.get('/api/rentabilidad', (req, res) => {
     db.all(`SELECT * FROM afiliados`, [], (err, rows) => {
         if (err) return res.status(500).json({ error: err.message });
@@ -230,25 +319,7 @@ app.get('/api/rentabilidad', (req, res) => {
     });
 });
 
-// 4. Actualizar la utilidad de un afiliado (Ir acumulando o editando en el mes)
-app.put('/api/afiliados/:id', (req, res) => {
-    const { id } = req.params;
-    const { utilidad_propia } = req.body;
-    const nuevaUtilidad = parseFloat(utilidad_propia);
-
-    if (isNaN(nuevaUtilidad) || nuevaUtilidad < 0) {
-        return res.status(400).json({ error: 'La utilidad debe ser un número válido y mayor o igual a 0.' });
-    }
-
-    db.run(`UPDATE afiliados SET utilidad_propia = ? WHERE id = ?`, [nuevaUtilidad, id], function(err) {
-        if (err) return res.status(500).json({ error: err.message });
-        if (this.changes === 0) return res.status(404).json({ error: 'Afiliado no encontrado.' });
-        
-        res.json({ message: 'Utilidad actualizada correctamente y red recalculada.' });
-    });
-});
-
-// 5. Eliminar un afiliado de la red
+// 7. Eliminar un afiliado de la red
 app.delete('/api/afiliados/:id', (req, res) => {
     const { id } = req.params;
 
