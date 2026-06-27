@@ -7,6 +7,8 @@ function App() {
   });
   const [formData, setFormData] = useState({ nombre: '', id_patrocinador: '', utilidad_propia: '' });
 
+  const [errorMsg, setErrorMsg] = useState('');
+
   // Cargar datos desde la API
   const cargarDatos = async () => {
     try {
@@ -28,25 +30,34 @@ function App() {
 
   // Manejar el envío del formulario
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      const res = await fetch('http://localhost:4000/api/afiliados', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          nombre: formData.nombre,
-          id_patrocinador: formData.id_patrocinador ? parseInt(formData.id_patrocinador) : null,
-          utilidad_propia: parseFloat(formData.utilidad_propia) || 0
-        })
-      });
-      if (res.ok) {
-        setFormData({ nombre: '', id_patrocinador: '', utilidad_propia: '' });
-        cargarDatos(); // Recargar la tabla y KPIs al instante
-      }
-    } catch (error) {
-      console.error("Error al registrar:", error);
+  e.preventDefault();
+  setErrorMsg(''); // Limpiar errores previos
+  
+  try {
+    const res = await fetch('http://localhost:4000/api/afiliados', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        nombre: formData.nombre,
+        id_patrocinador: formData.id_patrocinador ? parseInt(formData.id_patrocinador) : null,
+        utilidad_propia: formData.utilidad_propia === '' ? 0 : parseFloat(formData.utilidad_propia)
+      })
+    });
+    
+    const data = await res.json();
+
+    if (res.ok) {
+      setFormData({ nombre: '', id_patrocinador: '', utilidad_propia: '' });
+      cargarDatos(); // Recargar todo si salió bien
+    } else {
+      // Capturamos el error específico enviado por el backend (Ej: Límite de 15)
+      setErrorMsg(data.error || 'Ocurrió un error inesperado.');
     }
-  };
+  } catch (error) {
+    setErrorMsg('No se pudo conectar con el servidor backend.');
+    console.error("Error al registrar:", error);
+  }
+};
 
   return (
     <div className="min-h-screen bg-gray-100 p-6 font-sans">
@@ -79,6 +90,11 @@ function App() {
         {/* SECCIÓN 2: FORMULARIO DE REGISTRO */}
         <div className="bg-white p-6 rounded-lg shadow-sm h-fit">
           <h2 className="text-xl font-bold text-gray-700 mb-4">Registrar Nuevo Miembro</h2>
+          {errorMsg && (
+            <div className="bg-red-50 border-l-4 border-red-500 p-3 mb-4 rounded text-sm text-red-700 font-medium">
+              ⚠️ {errorMsg}
+            </div>
+          )}
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-600">Nombre del Afiliado</label>
@@ -111,6 +127,8 @@ function App() {
               <tr>
                 <th className="px-4 py-3">ID</th>
                 <th className="px-4 py-3">Nombre</th>
+                <th className="px-4 py-3">Patrocinador</th>
+                <th className="px-4 py-3">Estado</th>
                 <th className="px-4 py-3">Nivel</th>
                 <th className="px-4 py-3">U. Propia</th>
                 <th className="px-4 py-3">Com. Propia</th>
@@ -124,6 +142,17 @@ function App() {
                 <tr key={a.id} className="hover:bg-gray-50 transition">
                   <td className="px-4 py-3 font-mono text-gray-400">{a.id}</td>
                   <td className="px-4 py-3 font-medium text-gray-900">{a.nombre}</td>
+                  
+                  {/* NUEVA CELDA: Nombre del Patrocinador */}
+                  <td className="px-4 py-3 text-gray-500 font-medium">{a.nombre_patrocinador}</td>
+                  
+                  {/* NUEVA CELDA: Estado de Activación */}
+                  <td className="px-4 py-3">
+                    <span className={`px-2 py-1 rounded-full text-xs font-bold ${a.estado === 'Activo' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                      {a.estado}
+                    </span>
+                  </td>
+
                   <td className="px-4 py-3">
                     <span className={`px-2 py-1 rounded text-xs font-bold ${a.nivel === 4 ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-600'}`}>
                       Nivel {a.nivel}
