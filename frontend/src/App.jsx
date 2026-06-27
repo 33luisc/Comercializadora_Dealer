@@ -1,15 +1,99 @@
 import { useState, useEffect } from 'react';
 
+// ✅ NUEVO COMPONENTE: Maneja el estado individual de cada fila sin romper las reglas de React
+function FilaAfiliado({ a, cargarDatos, setErrorMsg }) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [editValue, setEditValue] = useState(a.utilidad_propia);
+
+  const handleSaveUtilidad = async (id) => {
+    try {
+      const res = await fetch(`http://localhost:4000/api/afiliados/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ utilidad_propia: editValue })
+      });
+      if (res.ok) {
+        setIsEditing(false);
+        cargarDatos(); 
+      } else {
+        const data = await res.json();
+        setErrorMsg(data.error);
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (window.confirm("¿Estás seguro de que deseas eliminar este afiliado de la red?")) {
+      try {
+        const res = await fetch(`http://localhost:4000/api/afiliados/${id}`, { method: 'DELETE' });
+        if (res.ok) {
+          cargarDatos();
+        } else {
+          const data = await res.json();
+          setErrorMsg(data.error); 
+        }
+      } catch (error) {
+        console.error(error);
+      }
+    }
+  };
+
+  return (
+    <tr className="hover:bg-gray-50 transition">
+      <td className="px-4 py-3 font-mono text-gray-400">{a.id}</td>
+      <td className="px-4 py-3 font-medium text-gray-900">{a.nombre}</td>
+      <td className="px-4 py-3 text-gray-500 font-medium">{a.nombre_patrocinador}</td>
+      <td className="px-4 py-3">
+        <span className={`px-2 py-1 rounded-full text-xs font-bold ${a.estado === 'Activo' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+          {a.estado}
+        </span>
+      </td>
+      <td className="px-4 py-3">
+        <span className={`px-2 py-1 rounded text-xs font-bold ${a.nivel === 4 ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-600'}`}>
+          Nivel {a.nivel}
+        </span>
+      </td>
+
+      {/* CELDA DE UTILIDAD EDITABLE IN-LINE */}
+      <td className="px-4 py-3">
+        {isEditing ? (
+          <div className="flex items-center space-x-1">
+            <input type="number" value={editValue} onChange={(e) => setEditValue(e.target.value)} className="w-24 p-1 text-sm border rounded bg-white" />
+            <button onClick={() => handleSaveUtilidad(a.id)} className="text-green-600 hover:text-green-800 font-bold">✔️</button>
+            <button onClick={() => { setIsEditing(false); setEditValue(a.utilidad_propia); }} className="text-gray-400 hover:text-gray-600">❌</button>
+          </div>
+        ) : (
+          <div className="flex items-center space-x-2 group">
+            <span>${Number(a.utilidad_propia).toLocaleString()}</span>
+            <button onClick={() => setIsEditing(true)} className="opacity-0 group-hover:opacity-100 text-blue-500 hover:text-blue-700 text-xs transition">✏️ Editar</button>
+          </div>
+        )}
+      </td>
+
+      <td className="px-4 py-3 text-green-600">${Math.round(a.comision_propia || 0).toLocaleString()}</td>
+      <td className="px-4 py-3 text-green-600">${Math.round(a.comision_por_red || 0).toLocaleString()}</td>
+      <td className="px-4 py-3 text-purple-600">${Math.round(a.bono_liderazgo || 0).toLocaleString()}</td>
+      <td className="px-4 py-3 font-bold text-gray-900">${Math.round(a.comision_total || 0).toLocaleString()}</td>
+
+      <td className="px-4 py-3 text-right">
+        <button onClick={() => handleDelete(a.id)} className="text-red-500 hover:text-red-700 text-sm p-1 font-medium rounded transition" title="Eliminar Afiliado">
+          🗑️ Eliminar
+        </button>
+      </td>
+    </tr>
+  );
+}
+
 function App() {
   const [afiliados, setAfiliados] = useState([]);
   const [rentabilidad, setRentabilidad] = useState({
     utilidadGlobal: 0, comisionesPagadas: 0, margenLibre: 0, porcentajeRepartido: 0
   });
   const [formData, setFormData] = useState({ nombre: '', id_patrocinador: '', utilidad_propia: '' });
-
   const [errorMsg, setErrorMsg] = useState('');
 
-  // Cargar datos desde la API
   const cargarDatos = async () => {
     try {
       const resAfiliados = await fetch('http://localhost:4000/api/afiliados');
@@ -28,36 +112,34 @@ function App() {
     cargarDatos();
   }, []);
 
-  // Manejar el envío del formulario
   const handleSubmit = async (e) => {
-  e.preventDefault();
-  setErrorMsg(''); // Limpiar errores previos
-  
-  try {
-    const res = await fetch('http://localhost:4000/api/afiliados', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        nombre: formData.nombre,
-        id_patrocinador: formData.id_patrocinador ? parseInt(formData.id_patrocinador) : null,
-        utilidad_propia: formData.utilidad_propia === '' ? 0 : parseFloat(formData.utilidad_propia)
-      })
-    });
+    e.preventDefault();
+    setErrorMsg('');
     
-    const data = await res.json();
+    try {
+      const res = await fetch('http://localhost:4000/api/afiliados', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          nombre: formData.nombre,
+          id_patrocinador: formData.id_patrocinador ? parseInt(formData.id_patrocinador) : null,
+          utilidad_propia: formData.utilidad_propia === '' ? 0 : parseFloat(formData.utilidad_propia)
+        })
+      });
+      
+      const data = await res.json();
 
-    if (res.ok) {
-      setFormData({ nombre: '', id_patrocinador: '', utilidad_propia: '' });
-      cargarDatos(); // Recargar todo si salió bien
-    } else {
-      // Capturamos el error específico enviado por el backend (Ej: Límite de 15)
-      setErrorMsg(data.error || 'Ocurrió un error inesperado.');
+      if (res.ok) {
+        setFormData({ nombre: '', id_patrocinador: '', utilidad_propia: '' });
+        cargarDatos();
+      } else {
+        setErrorMsg(data.error || 'Ocurrió un error inesperado.');
+      }
+    } catch (error) {
+      setErrorMsg('No se pudo conectar con el servidor backend.');
+      console.error("Error al registrar:", error);
     }
-  } catch (error) {
-    setErrorMsg('No se pudo conectar con el servidor backend.');
-    console.error("Error al registrar:", error);
-  }
-};
+  };
 
   return (
     <div className="min-h-screen bg-gray-100 p-6 font-sans">
@@ -70,19 +152,19 @@ function App() {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
         <div className="bg-white p-5 rounded-lg shadow-sm border-l-4 border-blue-500">
           <p className="text-sm text-gray-500 font-medium uppercase">Utilidad Total</p>
-          <p className="text-2xl font-bold text-gray-800">${Number(rentabilidad.utilidadGlobal).toLocaleString()}</p>
+          <p className="text-2xl font-bold text-gray-800">${Number(rentabilidad.utilidadGlobal || 0).toLocaleString()}</p>
         </div>
         <div className="bg-white p-5 rounded-lg shadow-sm border-l-4 border-red-500">
           <p className="text-sm text-gray-500 font-medium uppercase">Comisiones Pagadas</p>
-          <p className="text-2xl font-bold text-gray-800">${Number(rentabilidad.comisionesPagadas).toLocaleString()}</p>
+          <p className="text-2xl font-bold text-gray-800">${Number(rentabilidad.comisionesPagadas || 0).toLocaleString()}</p>
         </div>
         <div className="bg-white p-5 rounded-lg shadow-sm border-l-4 border-green-500">
           <p className="text-sm text-gray-500 font-medium uppercase">Margen Neto Empresa</p>
-          <p className="text-2xl font-bold text-gray-800">${Number(rentabilidad.margenLibre).toLocaleString()}</p>
+          <p className="text-2xl font-bold text-gray-800">${Number(rentabilidad.margenLibre || 0).toLocaleString()}</p>
         </div>
         <div className="bg-white p-5 rounded-lg shadow-sm border-l-4 border-purple-500">
           <p className="text-sm text-gray-500 font-medium uppercase">% Repartido de Red</p>
-          <p className="text-2xl font-bold text-gray-800">{rentabilidad.porcentajeRepartido}%</p>
+          <p className="text-2xl font-bold text-gray-800">{rentabilidad.porcentajeRepartido || 0}%</p>
         </div>
       </div>
 
@@ -135,39 +217,21 @@ function App() {
                 <th className="px-4 py-3">Com. Red</th>
                 <th className="px-4 py-3">Bono Líder</th>
                 <th className="px-4 py-3 font-bold text-gray-700">Total</th>
+                <th className=""></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 text-gray-700">
               {afiliados.map(a => (
-                <tr key={a.id} className="hover:bg-gray-50 transition">
-                  <td className="px-4 py-3 font-mono text-gray-400">{a.id}</td>
-                  <td className="px-4 py-3 font-medium text-gray-900">{a.nombre}</td>
-                  
-                  {/* NUEVA CELDA: Nombre del Patrocinador */}
-                  <td className="px-4 py-3 text-gray-500 font-medium">{a.nombre_patrocinador}</td>
-                  
-                  {/* NUEVA CELDA: Estado de Activación */}
-                  <td className="px-4 py-3">
-                    <span className={`px-2 py-1 rounded-full text-xs font-bold ${a.estado === 'Activo' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                      {a.estado}
-                    </span>
-                  </td>
-
-                  <td className="px-4 py-3">
-                    <span className={`px-2 py-1 rounded text-xs font-bold ${a.nivel === 4 ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-600'}`}>
-                      Nivel {a.nivel}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">${Number(a.utilidad_propia).toLocaleString()}</td>
-                  <td className="px-4 py-3 text-green-600">${Math.round(a.comision_propia).toLocaleString()}</td>
-                  <td className="px-4 py-3 text-green-600">${Math.round(a.comision_por_red).toLocaleString()}</td>
-                  <td className="px-4 py-3 text-purple-600">${Math.round(a.bono_liderazgo).toLocaleString()}</td>
-                  <td className="px-4 py-3 font-bold text-gray-900">${Math.round(a.comision_total).toLocaleString()}</td>
-                </tr>
+                <FilaAfiliado 
+                  key={a.id} 
+                  a={a} 
+                  cargarDatos={cargarDatos} 
+                  setErrorMsg={setErrorMsg} 
+                />
               ))}
               {afiliados.length === 0 && (
                 <tr>
-                  <td colSpan="8" className="text-center py-8 text-gray-400">No hay afiliados registrados aún. ¡Registra el primero!</td>
+                  <td colSpan="11" className="text-center py-8 text-gray-400">No hay afiliados registrados aún. ¡Registra el primero!</td>
                 </tr>
               )}
             </tbody>

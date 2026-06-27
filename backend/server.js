@@ -230,6 +230,44 @@ app.get('/api/rentabilidad', (req, res) => {
     });
 });
 
+// 4. Actualizar la utilidad de un afiliado (Ir acumulando o editando en el mes)
+app.put('/api/afiliados/:id', (req, res) => {
+    const { id } = req.params;
+    const { utilidad_propia } = req.body;
+    const nuevaUtilidad = parseFloat(utilidad_propia);
+
+    if (isNaN(nuevaUtilidad) || nuevaUtilidad < 0) {
+        return res.status(400).json({ error: 'La utilidad debe ser un número válido y mayor o igual a 0.' });
+    }
+
+    db.run(`UPDATE afiliados SET utilidad_propia = ? WHERE id = ?`, [nuevaUtilidad, id], function(err) {
+        if (err) return res.status(500).json({ error: err.message });
+        if (this.changes === 0) return res.status(404).json({ error: 'Afiliado no encontrado.' });
+        
+        res.json({ message: 'Utilidad actualizada correctamente y red recalculada.' });
+    });
+});
+
+// 5. Eliminar un afiliado de la red
+app.delete('/api/afiliados/:id', (req, res) => {
+    const { id } = req.params;
+
+    // REGLA DE SEGURIDAD: No dejar eliminar si alguien lo tiene como patrocinador activo
+    db.get(`SELECT COUNT(*) as hijos FROM afiliados WHERE id_patrocinador = ?`, [id], (err, row) => {
+        if (err) return res.status(500).json({ error: err.message });
+        if (row.hijos > 0) {
+            return res.status(400).json({ 
+                error: 'No se puede eliminar este afiliado porque tiene una red dependiente debajo de él. Primero reasigna o elimina a sus referidos.' 
+            });
+        }
+
+        db.run(`DELETE FROM afiliados WHERE id = ?`, [id], function(deleteErr) {
+            if (deleteErr) return res.status(500).json({ error: deleteErr.message });
+            res.json({ message: 'Afiliado removido de la red con éxito.' });
+        });
+    });
+});
+
 // Salud del servidor
 app.get('/api/health', (req, res) => {
     res.status(200).json({ status: 'OK', timestamp: new Date() });
