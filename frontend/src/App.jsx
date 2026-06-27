@@ -33,13 +33,11 @@ function App() {
 
   useEffect(() => {
     cargarDatos();
-    // Definir el periodo actual por defecto (AAAA-MM)
     const fecha = new Date();
     const mes = String(fecha.getMonth() + 1).padStart(2, '0');
     setPeriodoCierre(`${fecha.getFullYear()}-${mes}`);
   }, []);
 
-  // Registrar un nuevo afiliado (Inicia en $0)
   const handleRegisterAfiliado = async (e) => {
     e.preventDefault();
     setErrorMsg('');
@@ -66,8 +64,7 @@ function App() {
     }
   };
 
-  // Registrar un movimiento contable (+ / -)
-  const handleAddTransaccion = async (e) => {
+const handleAddTransaccion = async (e) => {
     e.preventDefault();
     setErrorMsg('');
     try {
@@ -93,7 +90,6 @@ function App() {
     }
   };
 
-  // Ejecutar el cierre contable del mes
   const handleCierreMes = async () => {
     if (window.confirm(`¿Estás completamente seguro de cerrar el periodo ${periodoCierre}? Esto congelará las comisiones y reiniciará el mes en curso a $0.`)) {
       setErrorMsg('');
@@ -240,15 +236,21 @@ function App() {
                     </td>
                     <td className="px-3 py-3">
                       <span className={`px-1.5 py-0.5 rounded text-xs font-bold ${a.nivel === 4 ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-600'}`}>
-                        N1:{a.nivel}
+                        Nivel {a.nivel}
                       </span>
                     </td>
                     
-                    {/* UTILIDAD EN TIEMPO REAL CON BOTÓN DE AUDITORÍA */}
                     <td className="px-3 py-3">
-                      <div className="flex items-center space-x-1">
+                      <div className="flex items-center space-x-2">
                         <span className="font-semibold">${Number(a.utilidad_propia).toLocaleString()}</span>
-                        <button onClick={() => { setSelectedAfiliado(a); setModalOpen(true); }} className="text-blue-600 hover:text-blue-800 text-xs bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200 transition" title="Registrar Movimiento">
+                        <button 
+                          type="button"
+                          onClick={() => { 
+                            setSelectedAfiliado(a); 
+                            setModalOpen(true); 
+                          }} 
+                          className="text-blue-600 hover:text-blue-800 text-xs bg-blue-50 hover:bg-blue-100 px-2 py-1 rounded border border-blue-200 transition font-medium"
+                        >
                           💸 +/-
                         </button>
                       </div>
@@ -272,36 +274,126 @@ function App() {
         </div>
       </main>
 
-      {/* MODAL INTERACTIVO PARA AGREGAR TRANSACCIONES / AJUSTES */}
-      {modalOpen && selectedAfiliado && (
-        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center p-4 z-50 animate-fadeIn">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6 relative">
-            <h3 className="text-lg font-bold text-gray-800 mb-2">Registrar Transacción</h3>
-            <p className="text-sm text-gray-500 mb-4">Añadirás o restarás un valor a la utilidad del mes para: <strong className="text-gray-700">{selectedAfiliado.nombre}</strong></p>
-            
-            <form onSubmit={handleAddTransaccion} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-gray-500 uppercase">Monto ($)</label>
-                <input type="number" required step="any" placeholder="Ej: 1500000 o -200000 para resta" value={transData.monto} onChange={(e) => setTransData({...transData, monto: e.target.value})} className="mt-1 block w-full rounded-md border p-2 bg-gray-50 text-sm focus:outline-blue-500" />
-                <span className="text-xs text-gray-400 mt-1 block">Para restar una devolución, pon el signo de menos (-) antes de la cifra.</span>
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-gray-500 uppercase">Concepto / Descripción</label>
-                <input type="text" required placeholder="Ej: Venta de GPU RTX 4060 / Devolución componente" value={transData.descripcion} onChange={(e) => setTransData({...transData, descripcion: e.target.value})} className="mt-1 block w-full rounded-md border p-2 bg-gray-50 text-sm focus:outline-blue-500" />
-              </div>
+      {/* MODAL SENCILLO Y GARANTIZADO DE FUNCIONAR */}
+        {modalOpen && selectedAfiliado && (
+          <div 
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: 'rgba(0, 0, 0, 0.6)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 99999,
+              backdropFilter: 'blur(4px)'
+            }}
+          >
+            <div 
+              style={{
+                backgroundColor: '#ffffff',
+                borderRadius: '12px',
+                padding: '24px',
+                maxWidth: '400px',
+                width: '100%',
+                boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+                fontFamily: 'sans-serif'
+              }}
+            >
+              <h3 style={{ margin: '0 0 4px 0', fontSize: '18px', fontWeight: 'bold', color: '#111827' }}>
+                Registrar Transacción
+              </h3>
+              <p style={{ margin: '0 0 20px 0', fontSize: '14px', color: '#6b7280' }}>
+                Modificar saldo para: <strong style={{ color: '#2563eb' }}>{selectedAfiliado.nombre}</strong>
+              </p>
               
-              <div className="flex justify-end space-x-2 pt-2">
-                <button type="button" onClick={() => { setModalOpen(false); setTransData({ monto: '', descripcion: '' }); }} className="bg-gray-100 hover:bg-gray-200 text-gray-600 text-sm px-4 py-2 rounded-md transition">
-                  Cancelar
-                </button>
-                <button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded-md font-medium transition">
-                  Aplicar Ajuste
-                </button>
-              </div>
-            </form>
+              <form onSubmit={handleAddTransaccion}>
+                <div style={{ marginBottom: '16px' }}>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 'bold', color: '#4b5563', marginBottom: '6px', textTransform: 'uppercase' }}>
+                    Monto ($)
+                  </label>
+                  <input 
+                    type="number" 
+                    required 
+                    placeholder="Ej: 1500000 o -200000" 
+                    value={transData.monto} 
+                    onChange={(e) => setTransData({...transData, monto: e.target.value})} 
+                    style={{
+                      width: '100%',
+                      padding: '10px',
+                      borderRadius: '8px',
+                      border: '1px border #d1d5db',
+                      backgroundColor: '#f9fafb',
+                      fontSize: '14px',
+                      boxSizing: 'border-box'
+                    }} 
+                  />
+                </div>
+
+                <div style={{ marginBottom: '24px' }}>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 'bold', color: '#4b5563', marginBottom: '6px', textTransform: 'uppercase' }}>
+                    Concepto
+                  </label>
+                  <input 
+                    type="text" 
+                    required 
+                    placeholder="Ej: Venta de Componentes" 
+                    value={transData.descripcion} 
+                    onChange={(e) => setTransData({...transData, descripcion: e.target.value})} 
+                    style={{
+                      width: '100%',
+                      padding: '10px',
+                      borderRadius: '8px',
+                      border: '1px border #d1d5db',
+                      backgroundColor: '#f9fafb',
+                      fontSize: '14px',
+                      boxSizing: 'border-box'
+                    }} 
+                  />
+                </div>
+                
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', borderTop: '1px solid #e5e7eb', paddingTop: '16px' }}>
+                  <button 
+                    type="button" 
+                    onClick={() => { 
+                      setModalOpen(false); 
+                      setSelectedAfiliado(null);
+                      setTransData({ monto: '', descripcion: '' }); 
+                    }} 
+                    style={{
+                      padding: '8px 16px',
+                      borderRadius: '6px',
+                      border: '1px solid #d1d5db',
+                      backgroundColor: '#ffffff',
+                      color: '#374151',
+                      cursor: 'pointer',
+                      fontSize: '14px'
+                    }}
+                  >
+                    Cancelar
+                  </button>
+                  <button 
+                    type="submit" 
+                    style={{
+                      padding: '8px 16px',
+                      borderRadius: '6px',
+                      border: 'none',
+                      backgroundColor: '#2563eb',
+                      color: '#ffffff',
+                      cursor: 'pointer',
+                      fontWeight: '6px',
+                      fontSize: '14px'
+                    }}
+                  >
+                    Aplicar Ajuste
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
     </div>
   );

@@ -298,9 +298,17 @@ app.get('/api/historico/:periodo', (req, res) => {
     });
 });
 
-// 6. Obtener balance global de Rentabilidad para el Administrador
+// 6. Obtener balance global de Rentabilidad para el Administrador (CORREGIDO)
 app.get('/api/rentabilidad', (req, res) => {
-    db.all(`SELECT * FROM afiliados`, [], (err, rows) => {
+    // Agrupamos con las transacciones activas para que la utilidad global sea real
+    const query = `
+        SELECT a.*, COALESCE(SUM(t.monto), 0) as utilidad_propia
+        FROM afiliados a
+        LEFT JOIN transacciones t ON a.id = t.id_afiliado
+        GROUP BY a.id
+    `;
+
+    db.all(query, [], (err, rows) => {
         if (err) return res.status(500).json({ error: err.message });
         
         const calculados = procesarCalculosMLM(rows);
