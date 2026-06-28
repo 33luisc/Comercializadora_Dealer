@@ -347,6 +347,23 @@ app.delete('/api/afiliados/:id', (req, res) => {
     });
 });
 
+// 8. Obtener el historial de transacciones detallado de un afiliado en el mes en curso
+app.get('/api/transacciones/:id_afiliado', (req, res) => {
+    const { id_afiliado } = req.params;
+
+    const query = `
+        SELECT id, monto, descripcion, fecha 
+        FROM transacciones 
+        WHERE id_afiliado = ? 
+        ORDER BY fecha DESC
+    `;
+
+    db.all(query, [id_afiliado], (err, rows) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json(rows);
+    });
+});
+
 // Salud del servidor
 app.get('/api/health', (req, res) => {
     res.status(200).json({ status: 'OK', timestamp: new Date() });

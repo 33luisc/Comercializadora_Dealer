@@ -20,6 +20,10 @@ function App() {
   const [verHistorico, setVerHistorico] = useState(false); // ¿Estamos viendo el pasado?
   const [datosHistoricos, setDatosHistoricos] = useState([]); // Guardar los datos del mes viejo
 
+  const [verBitacora, setVerBitacora] = useState(false); // Controla si el panel de transacciones está abierto
+  const [afiliadoSeleccionadoBitacora, setAfiliadoSeleccionadoBitacora] = useState(null); // Qué afiliado estamos mirando
+  const [listaTransacciones, setListaTransacciones] = useState([]); // Guarda el array que viene del backend
+
   const cargarDatos = async () => {
     try {
       const resAfiliados = await fetch('http://localhost:4000/api/afiliados');
@@ -160,6 +164,25 @@ const handleAddTransaccion = async (e) => {
     }
   };
 
+  const cargarBitacoraAfiliado = async (afiliado) => {
+  try {
+    setErrorMsg('');
+    const res = await fetch(`http://localhost:4000/api/transacciones/${afiliado.id}`);
+    const data = await res.json();
+    
+    if (res.ok) {
+      setListaTransacciones(data);
+      setAfiliadoSeleccionadoBitacora(afiliado);
+      setVerBitacora(true);
+    } else {
+      setErrorMsg(data.error || 'Error al cargar las transacciones.');
+    }
+  } catch (error) {
+    console.error(error);
+    setErrorMsg('Error conectando con el servidor.');
+  }
+};
+
   return (
     <div className="min-h-screen bg-gray-100 p-6 font-sans relative">
       
@@ -290,7 +313,20 @@ const handleAddTransaccion = async (e) => {
                 {(verHistorico ? datosHistoricos : afiliados).map(a => (
                   <tr key={a.id} className="hover:bg-gray-50 transition">
                     <td className="px-3 py-3 font-mono text-gray-400 text-xs">{a.id}</td>
-                    <td className="px-3 py-3 font-medium text-gray-900">{a.nombre}</td>
+                    <td className="px-3 py-3 font-medium text-gray-900"><div className="flex items-center space-x-2">
+                      <span>{a.nombre}</span>
+                      {/* Agregamos el botón de bitácora (se oculta si estamos viendo el histórico general ya congelado) */}
+                      {!verHistorico && (
+                        <button
+                          type="button"
+                          onClick={() => cargarBitacoraAfiliado(a)}
+                          className="text-gray-400 hover:text-blue-600 text-xs transition"
+                          title="Ver historial de movimientos"
+                        >
+                          🔍
+                        </button>
+                      )}
+                    </div></td>
                     <td className="px-3 py-3 text-gray-500 text-xs">
                       {verHistorico ? 'N/A (Histórico)' : a.nombre_patrocinador}
                     </td>
@@ -345,7 +381,7 @@ const handleAddTransaccion = async (e) => {
         </div>
       </main>
 
-      {/* MODAL SENCILLO Y GARANTIZADO DE FUNCIONAR */}
+      {/* MODAL SENCILLO */}
         {modalOpen && selectedAfiliado && (
           <div 
             style={{
@@ -465,6 +501,60 @@ const handleAddTransaccion = async (e) => {
             </div>
           </div>
         )}
+
+        {/* VISOR DE BITÁCORA DE TRANSACCIONES */}
+          {verBitacora && afiliadoSeleccionadoBitacora && (
+            <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0, 0, 0, 0.5)', display: 'flex', alignItems: 'center', justifyCenter: 'center', justifyContent: 'center', zIndex: 99998, backdropFilter: 'blur(2px)' }}>
+              <div style={{ backgroundColor: '#ffffff', borderRadius: '12px', padding: '24px', maxWidth: '500px', width: '100%', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)', fontFamily: 'sans-serif', maxHeight: '80vh', display: 'flex', flexDirection: 'column' }}>
+                
+                <div style={{ borderBottom: '1px solid #e5e7eb', paddingBottom: '12px', marginBottom: '16px' }}>
+                  <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 'bold', color: '#111827' }}>Historial de Ventas / Ajustes</h3>
+                  <p style={{ margin: '4px 0 0 0', fontSize: '14px', color: '#4b5563' }}>
+                    Mes en curso para: <strong style={{ color: '#2563eb' }}>{afiliadoSeleccionadoBitacora.nombre}</strong>
+                  </p>
+                </div>
+
+                {/* Contenedor escroleable por si hay muchos movimientos */}
+                <div style={{ flex: 1, overflowY: 'auto', marginBottom: '20px', pr: '4px' }}>
+                  {listaTransacciones.length === 0 ? (
+                    <p style={{ textAlign: 'center', color: '#9ca3af', fontSize: '14px', margin: '30px 0' }}>No hay movimientos registrados este mes.</p>
+                  ) : (
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px text-left' }}>
+                      <thead>
+                        <tr style={{ borderBottom: '2px solid #e5e7eb', color: '#374151', textAlign: 'left' }}>
+                          <th style={{ padding: '8px 4px' }}>Concepto</th>
+                          <th style={{ padding: '8px 4px', textAlign: 'right' }}>Monto</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {listaTransacciones.map((t) => (
+                          <tr key={t.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
+                            <td style={{ padding: '8px 4px' }}>
+                              <div style={{ fontWeight: '500', color: '#111827' }}>{t.descripcion}</div>
+                              <div style={{ fontSize: '11px', color: '#9ca3af' }}>{t.fecha}</div>
+                            </td>
+                            <td style={{ padding: '8px 4px', textAlign: 'right', fontWeight: 'bold', color: t.monto >= 0 ? '#16a34a' : '#dc2626' }}>
+                              {t.monto >= 0 ? `+` : ''}${Number(t.monto).toLocaleString()}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'flex-end', borderTop: '1px solid #e5e7eb', paddingTop: '16px' }}>
+                  <button 
+                    onClick={() => { setVerBitacora(false); setAfiliadoSeleccionadoBitacora(null); }}
+                    style={{ padding: '8px 20px', borderRadius: '6px', border: '1px solid #d1d5db', backgroundColor: '#ffffff', cursor: 'pointer', fontSize: '14px', fontWeight: '500' }}
+                  >
+                    Cerrar Ventana
+                  </button>
+                </div>
+
+              </div>
+            </div>
+          )}
 
     </div>
   );
