@@ -17,6 +17,9 @@ function App() {
   const [selectedAfiliado, setSelectedAfiliado] = useState(null);
   const [transData, setTransData] = useState({ monto: '', descripcion: '' });
 
+  const [verHistorico, setVerHistorico] = useState(false); // ¿Estamos viendo el pasado?
+  const [datosHistoricos, setDatosHistoricos] = useState([]); // Guardar los datos del mes viejo
+
   const cargarDatos = async () => {
     try {
       const resAfiliados = await fetch('http://localhost:4000/api/afiliados');
@@ -30,6 +33,31 @@ function App() {
       console.error("Error conectando con la API:", error);
     }
   };
+
+  const cargarPeriodoHistorico = async (periodo) => {
+  if (!periodo) return;
+  try {
+    setErrorMsg('');
+    const res = await fetch(`http://localhost:4000/api/historico/${periodo}`);
+    const data = await res.json();
+    
+    if (res.ok) {
+      if (data.length === 0) {
+        alert(`No se encontraron registros guardados para el periodo ${periodo}`);
+        setVerHistorico(false);
+        cargarDatos(); // Volver al mes activo
+      } else {
+        setDatosHistoricos(data);
+        setVerHistorico(true);
+      }
+    } else {
+      setErrorMsg(data.error || 'Error al cargar el histórico.');
+    }
+  } catch (error) {
+    console.error(error);
+    setErrorMsg('Error conectando con el servidor.');
+  }
+};
 
   useEffect(() => {
     cargarDatos();
@@ -147,16 +175,50 @@ const handleAddTransaccion = async (e) => {
           <p className="text-gray-600">Gestión Profesional de Comisiones con Auditoría</p>
         </div>
         
-        {/* PANEL DE ACCIÓN: CIERRE DE MES */}
-        <div className="mt-4 md:mt-0 flex items-center space-x-2 bg-gray-50 p-3 rounded-md border">
-          <div className="flex flex-col">
-            <label className="text-xs text-gray-500 font-semibold uppercase">Periodo Contable</label>
-            <input type="month" value={periodoCierre} onChange={(e) => setPeriodoCierre(e.target.value)} className="bg-transparent font-bold text-gray-700 focus:outline-none text-sm" />
+        {/* PANEL DE ACCIÓN CON AUDITORÍA */}
+          <div className="mt-4 md:mt-0 flex flex-col md:flex-row items-center gap-3 bg-gray-50 p-3 rounded-md border">
+            <div className="flex flex-col">
+              <label className="text-xs text-gray-500 font-semibold uppercase">Periodo Contable</label>
+              <input 
+                type="month" 
+                value={periodoCierre} 
+                onChange={(e) => {
+                  setPeriodoCierre(e.target.value);
+                  if(verHistorico) cargarPeriodoHistorico(e.target.value);
+                }} 
+                className="bg-transparent font-bold text-gray-700 focus:outline-none text-sm" 
+              />
+            </div>
+
+            <div className="flex space-x-2">
+              {verHistorico ? (
+                <button 
+                  onClick={() => {
+                    setVerHistorico(false);
+                    cargarDatos(); // Volver al mes real
+                  }} 
+                  className="bg-blue-600 hover:bg-blue-700 text-white font-medium text-xs py-2 px-3 rounded transition"
+                >
+                  👀 Ver Mes Activo
+                </button>
+              ) : (
+                <>
+                  <button 
+                    onClick={() => cargarPeriodoHistorico(periodoCierre)} 
+                    className="bg-gray-600 hover:bg-gray-700 text-white font-medium text-xs py-2 px-3 rounded transition"
+                  >
+                    🔍 Consultar Historial
+                  </button>
+                  <button 
+                    onClick={handleCierreMes} 
+                    className="bg-red-600 hover:bg-red-700 text-white font-medium text-xs py-2 px-3 rounded transition"
+                  >
+                    🔒 Cerrar Mes
+                  </button>
+                </>
+              )}
+            </div>
           </div>
-          <button onClick={handleCierreMes} className="bg-red-600 hover:bg-red-700 text-white font-medium text-xs py-2 px-4 rounded transition">
-            🔒 Cerrar Mes
-          </button>
-        </div>
       </header>
 
       <main className="max-w-7xl mx-auto">
@@ -224,11 +286,14 @@ const handleAddTransaccion = async (e) => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 text-gray-700">
-                {afiliados.map(a => (
+                {/* Elegimos dinámicamente qué lista mostrar */}
+                {(verHistorico ? datosHistoricos : afiliados).map(a => (
                   <tr key={a.id} className="hover:bg-gray-50 transition">
                     <td className="px-3 py-3 font-mono text-gray-400 text-xs">{a.id}</td>
                     <td className="px-3 py-3 font-medium text-gray-900">{a.nombre}</td>
-                    <td className="px-3 py-3 text-gray-500 text-xs">{a.nombre_patrocinador}</td>
+                    <td className="px-3 py-3 text-gray-500 text-xs">
+                      {verHistorico ? 'N/A (Histórico)' : a.nombre_patrocinador}
+                    </td>
                     <td className="px-3 py-3">
                       <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${a.estado === 'Activo' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
                         {a.estado}
@@ -243,16 +308,19 @@ const handleAddTransaccion = async (e) => {
                     <td className="px-3 py-3">
                       <div className="flex items-center space-x-2">
                         <span className="font-semibold">${Number(a.utilidad_propia).toLocaleString()}</span>
-                        <button 
-                          type="button"
-                          onClick={() => { 
-                            setSelectedAfiliado(a); 
-                            setModalOpen(true); 
-                          }} 
-                          className="text-blue-600 hover:text-blue-800 text-xs bg-blue-50 hover:bg-blue-100 px-2 py-1 rounded border border-blue-200 transition font-medium"
-                        >
-                          💸 +/-
-                        </button>
+                        {/* Si estamos viendo el histórico, ocultamos el botón de agregar dinero para no alterar el pasado */}
+                        {!verHistorico && (
+                          <button 
+                            type="button"
+                            onClick={() => { 
+                              setSelectedAfiliado(a); 
+                              setModalOpen(true); 
+                            }} 
+                            className="text-blue-600 hover:text-blue-800 text-xs bg-blue-50 hover:bg-blue-100 px-2 py-1 rounded border border-blue-200 transition font-medium"
+                          >
+                            💸 +/-
+                          </button>
+                        )}
                       </div>
                     </td>
 
@@ -262,9 +330,12 @@ const handleAddTransaccion = async (e) => {
                     <td className="px-3 py-3 font-bold text-gray-900">${Math.round(a.comision_total).toLocaleString()}</td>
                     
                     <td className="px-3 py-3 text-right">
-                      <button onClick={() => handleDelete(a.id)} className="text-red-400 hover:text-red-600 text-xs font-medium transition">
-                        🗑️ Borrar
-                      </button>
+                      {/* Impedir borrar afiliados si estamos viendo el pasado */}
+                      {!verHistorico && (
+                        <button onClick={() => handleDelete(a.id)} className="text-red-400 hover:text-red-600 text-xs font-medium transition">
+                          🗑️ Borrar
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}
