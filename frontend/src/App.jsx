@@ -244,25 +244,54 @@ const handleAddTransaccion = async (e) => {
           </div>
       </header>
 
-      <main className="max-w-7xl mx-auto">
-        {/* KPI CARDS */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-          <div className="bg-white p-5 rounded-lg shadow-sm border-l-4 border-blue-500">
-            <p className="text-sm text-gray-500 font-medium uppercase">Utilidad Bruta (Mes)</p>
-            <p className="text-2xl font-bold text-gray-800">${Number(rentabilidad.utilidadGlobal).toLocaleString()}</p>
+      <main className="max-w-7xl mx-auto px-4">
+        {/* CONTENEDOR FLEX: Siempre horizontal en PC, 2x2 en pantallas pequeñas */}
+        <div className="flex flex-wrap md:flex-nowrap gap-4 mb-6 w-full">
+          
+          {/* Tarjeta 1 */}
+          <div className="flex-1 min-w-[200px] bg-white p-3.5 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between">
+            <div>
+              <p className="text-[11px] text-gray-400 font-semibold uppercase tracking-wider">Utilidad Bruta</p>
+              <p className="text-lg font-bold text-gray-800">${Number(rentabilidad.utilidadGlobal).toLocaleString()}</p>
+            </div>
+            <div className="p-1.5 bg-blue-50 text-blue-600 rounded-lg shrink-0">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            </div>
           </div>
-          <div className="bg-white p-5 rounded-lg shadow-sm border-l-4 border-red-500">
-            <p className="text-sm text-gray-500 font-medium uppercase">Comisiones Generadas</p>
-            <p className="text-2xl font-bold text-gray-800">${Number(rentabilidad.comisionesPagadas).toLocaleString()}</p>
+
+          {/* Tarjeta 2 */}
+          <div className="flex-1 min-w-[200px] bg-white p-3.5 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between">
+            <div>
+              <p className="text-[11px] text-gray-400 font-semibold uppercase tracking-wider">Comisiones</p>
+              <p className="text-lg font-bold text-gray-800">${Number(rentabilidad.comisionesPagadas).toLocaleString()}</p>
+            </div>
+            <div className="p-1.5 bg-red-50 text-red-600 rounded-lg shrink-0">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
+            </div>
           </div>
-          <div className="bg-white p-5 rounded-lg shadow-sm border-l-4 border-green-500">
-            <p className="text-sm text-gray-500 font-medium uppercase">Margen Neto Retenido</p>
-            <p className="text-2xl font-bold text-gray-800">${Number(rentabilidad.margenLibre).toLocaleString()}</p>
+
+          {/* Tarjeta 3 */}
+          <div className="flex-1 min-w-[200px] bg-white p-3.5 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between">
+            <div>
+              <p className="text-[11px] text-gray-400 font-semibold uppercase tracking-wider">Margen Neto</p>
+              <p className="text-lg font-bold text-gray-800">${Number(rentabilidad.margenLibre).toLocaleString()}</p>
+            </div>
+            <div className="p-1.5 bg-green-50 text-green-600 rounded-lg shrink-0">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
+            </div>
           </div>
-          <div className="bg-white p-5 rounded-lg shadow-sm border-l-4 border-purple-500">
-            <p className="text-sm text-gray-500 font-medium uppercase">Payout de la Red</p>
-            <p className="text-2xl font-bold text-gray-800">{rentabilidad.porcentajeRepartido}%</p>
+
+          {/* Tarjeta 4 */}
+          <div className="flex-1 min-w-[200px] bg-white p-3.5 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between">
+            <div>
+              <p className="text-[11px] text-gray-400 font-semibold uppercase tracking-wider">Payout Red</p>
+              <p className="text-lg font-bold text-gray-800">{rentabilidad.porcentajeRepartido}%</p>
+            </div>
+            <div className="p-1.5 bg-purple-50 text-purple-600 rounded-lg shrink-0">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z"/></svg>
+            </div>
           </div>
+
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
