@@ -1,3 +1,23 @@
+/* src/index.css */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Reset global para evitar que estilos nativos arruinen tus componentes */
+@layer base {
+  table, th, td, tr {
+    border-color: rgba(229, 231, 235, 0.6) !important; /* Fuerza un borde gris muy sutil en lugar de negro */
+  }
+  
+  input, select, textarea {
+    border-color: #e5e7eb !important;
+    background-color: #ffffff;
+    box-sizing: border-box;
+  }
+
+  /* Quitar los bordes toscos automáticos que el navegador le pone al input type="month" */
+  input[type="month"] {
+    -webkit-appearance: none;
+    appearance: none;
+  }
+}

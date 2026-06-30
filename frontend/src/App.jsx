@@ -14,11 +14,9 @@ function App() {
   const [formData, setFormData] = useState({ nombre: '', id_patrocinador: '' });
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
-
-  // Estados para el Cierre de Mes
   const [periodoCierre, setPeriodoCierre] = useState('');
 
-  // Estados para el Modal de Transacciones
+  // Estados para Modales
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedAfiliado, setSelectedAfiliado] = useState(null);
   const [transData, setTransData] = useState({ monto: '', descripcion: '' });
@@ -192,128 +190,87 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 p-6 font-sans relative">
+    <div className="min-h-screen bg-gray-50/50 text-gray-900 antialiased font-sans pb-12">
       
-      <div className="max-w-7xl mx-auto mb-4">
-        {errorMsg && <div className="bg-red-50 border-l-4 border-red-500 p-3 rounded text-sm text-red-700 font-medium">⚠️ {errorMsg}</div>}
-        {successMsg && <div className="bg-green-50 border-l-4 border-green-500 p-3 rounded text-sm text-green-700 font-medium">✨ {successMsg}</div>}
+      {/* NOTIFICACIONES FLOTANTES */}
+      <div className="max-w-7xl mx-auto px-4 pt-4 sm:px-6 lg:px-8">
+        {errorMsg && <div className="mb-2 bg-red-50 border-l-4 border-red-500 p-3 rounded-r-xl text-xs text-red-700 font-semibold shadow-sm animate-fade-in">⚠️ {errorMsg}</div>}
+        {successMsg && <div className="mb-2 bg-green-50 border-l-4 border-green-500 p-3 rounded-r-xl text-xs text-green-700 font-semibold shadow-sm animate-fade-in">✨ {successMsg}</div>}
       </div>
 
-      <header className="max-w-7xl mx-auto mb-8 flex flex-col md:flex-row md:items-center md:justify-between bg-white p-6 rounded-lg shadow-sm">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-800">Comercializadora Dealer</h1>
-          <p className="text-gray-600">Gestión Profesional de Comisiones con Auditoría</p>
+      {/* ENCABEZADO INTEGRADO */}
+      <header className="bg-white border-b border-gray-200/60 py-5 mb-6">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+          <div>
+            <h1 className="text-2xl font-black tracking-tight text-gray-950">Comercializadora Dealer</h1>
+            <p className="text-xs text-gray-400 font-medium mt-0.5">Gestión Profesional de Comisiones con Auditoría Jerárquica</p>
+          </div>
         </div>
-
-        {/* CUADRO DE MANDOS Y CONTROLES */}
-          <DashboardControls 
-            afiliados={afiliados}
-            vistaActiva={vistaActiva}
-            setVistaActiva={setVistaActiva}
-            verHistorico={verHistorico}
-            setVerHistorico={setVerHistorico}
-            periodoCierre={periodoCierre}
-            setPeriodoCierre={setPeriodoCierre}
-            onCierreMes={handleCierreMes}
-            onCargarPeriodoHistorico={cargarPeriodoHistorico}
-            onCargarDatos={cargarDatos}
-          />
-
       </header>
 
-      <main className="max-w-7xl mx-auto px-4">
-        <div className="flex flex-wrap md:flex-nowrap gap-4 mb-6 w-full">
-          {/* Tarjeta 1 */}
-          <div className="flex-1 min-w-[200px] bg-white p-3.5 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between">
-            <div>
-              <p className="text-[11px] text-gray-400 font-semibold uppercase tracking-wider">Utilidad Bruta</p>
-              <p className="text-lg font-bold text-gray-800">${Number(rentabilidad.utilidadGlobal).toLocaleString()}</p>
-            </div>
-            <div className="p-1.5 bg-blue-50 text-blue-600 rounded-lg shrink-0">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-            </div>
-          </div>
+      {/* CUERPO PRINCIPAL */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        
+        {/* PANEL DE MANDO CENTRALIZADO */}
+        <DashboardControls 
+          rentabilidad={rentabilidad}
+          vistaActiva={vistaActiva}
+          setVistaActiva={setVistaActiva}
+          verHistorico={verHistorico}
+          setVerHistorico={setVerHistorico}
+          periodoCierre={periodoCierre}
+          setPeriodoCierre={setPeriodoCierre}
+          onCierreMes={handleCierreMes}
+          onCargarPeriodoHistorico={cargarPeriodoHistorico}
+          onCargarDatos={cargarDatos}
+        />
 
-          {/* Tarjeta 2 */}
-          <div className="flex-1 min-w-[200px] bg-white p-3.5 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between">
-            <div>
-              <p className="text-[11px] text-gray-400 font-semibold uppercase tracking-wider">Comisiones</p>
-              <p className="text-lg font-bold text-gray-800">${Number(rentabilidad.comisionesPagadas).toLocaleString()}</p>
-            </div>
-            <div className="p-1.5 bg-red-50 text-red-600 rounded-lg shrink-0">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
-            </div>
-          </div>
-
-          {/* Tarjeta 3 */}
-          <div className="flex-1 min-w-[200px] bg-white p-3.5 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between">
-            <div>
-              <p className="text-[11px] text-gray-400 font-semibold uppercase tracking-wider">Margen Neto</p>
-              <p className="text-lg font-bold text-gray-800">${Number(rentabilidad.margenLibre).toLocaleString()}</p>
-            </div>
-            <div className="p-1.5 bg-green-50 text-green-600 rounded-lg shrink-0">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
-            </div>
-          </div>
-
-          {/* Tarjeta 4 */}
-          <div className="flex-1 min-w-[200px] bg-white p-3.5 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between">
-            <div>
-              <p className="text-[11px] text-gray-400 font-semibold uppercase tracking-wider">Payout Red</p>
-              <p className="text-lg font-bold text-gray-800">{rentabilidad.porcentajeRepartido}%</p>
-            </div>
-            <div className="p-1.5 bg-purple-50 text-purple-600 rounded-lg shrink-0">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z"/></svg>
-            </div>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* REGISTRO DE MIEMBRO */}
+        {/* CONTENIDO INTERACTIVO (Formulario + Visualizador) */}
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start mt-6">
+          <div className="lg:col-span-1 bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+            
             <RegisterMemberForm 
               formData={formData}
               setFormData={setFormData}
               afiliados={afiliados}
               onRegister={handleRegisterAfiliado}
             />
-
-          {/* VISTA ACTIVA: TABLA O ARBOL */}
-            <div style={{ flex: 2 }}>
-              {vistaActiva === 'tabla' ? (
-                <MembersTable 
-                  verHistorico={verHistorico}
-                  datosHistoricos={datosHistoricos}
-                  afiliados={afiliados}
-                  onOpenBitacora={cargarBitacoraAfiliado}
-                  onOpenTransaccion={(a) => { setSelectedAfiliado(a); setModalOpen(true); }}
-                  onDelete={handleDelete}
-                />
-              ) : (
-                <NetworkTree afiliados={afiliados} />
-              )}
-            </div>
           </div>
-             
+
+          <div className="lg:col-span-3 bg-white p-5 rounded-2xl border border-gray-100 shadow-sm min-h-[400px]">
+            {vistaActiva === 'tabla' ? (
+              <MembersTable 
+                verHistorico={verHistorico}
+                datosHistoricos={datosHistoricos}
+                afiliados={afiliados}
+                onOpenBitacora={cargarBitacoraAfiliado}
+                onOpenTransaccion={(a) => { setSelectedAfiliado(a); setModalOpen(true); }}
+                onDelete={handleDelete}
+              />
+            ) : (
+              <NetworkTree afiliados={afiliados} />
+            )}
+          </div>
+        </div>
       </main>
 
-      {/* MODAL SENCILLO DE TRANSACCIÓN */}
-        <TransactionModal 
-          modalOpen={modalOpen}
-          selectedAfiliado={selectedAfiliado}
-          transData={transData}
-          setTransData={setTransData}
-          onClose={() => { setModalOpen(false); setSelectedAfiliado(null); setTransData({ monto: '', descripcion: '' }); }}
-          onSubmit={handleAddTransaccion}
-        />
+      {/* CONTENEDORES MODALES DE ACCIONES */}
+      <TransactionModal 
+        modalOpen={modalOpen}
+        selectedAfiliado={selectedAfiliado}
+        transData={transData}
+        setTransData={setTransData}
+        onClose={() => { setModalOpen(false); setSelectedAfiliado(null); setTransData({ monto: '', descripcion: '' }); }}
+        onSubmit={handleAddTransaccion}
+      />
 
-        {/* VISOR DE BITÁCORA DE TRANSACCIONES */}
-        <LogModal 
-          verBitacora={verBitacora}
-          afiliadoSeleccionadoBitacora={afiliadoSeleccionadoBitacora}
-          listaTransacciones={listaTransacciones}
-          onClose={() => { setVerBitacora(false); setAfiliadoSeleccionadoBitacora(null); }}
-        />
-      </div>
+      <LogModal 
+        verBitacora={verBitacora}
+        afiliadoSeleccionadoBitacora={afiliadoSeleccionadoBitacora}
+        listaTransacciones={listaTransacciones}
+        onClose={() => { setVerBitacora(false); setAfiliadoSeleccionadoBitacora(null); }}
+      />
+    </div>
   );
 }
 
