@@ -5,8 +5,15 @@ function MembersTable({ verHistorico, datosHistoricos, afiliados, onOpenBitacora
   const listaA_Mostrar = verHistorico ? datosHistoricos : afiliados;
 
   return (
-    <div style={{ backgroundColor: '#ffffff', borderRadius: '16px', padding: '16px', overflowX: 'auto', fontFamily: 'sans-serif' }}>
-      <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
+    <div style={{ 
+      backgroundColor: '#ffffff', 
+      borderRadius: '16px', 
+      padding: '16px', 
+      overflowX: 'auto', 
+      fontFamily: 'sans-serif',
+      width: '100%' // Forzar a ocupar el espacio del grid asignado
+    }}>
+      <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px', minWidth: '600px' }}>
         <thead>
           <tr style={{ backgroundColor: '#f9fafb', color: '#4b5563', borderBottom: '1px solid #e5e7eb' }}>
             <th style={{ padding: '12px 10px', textAlign: 'center', fontWeight: '700' }}>ID</th>
@@ -45,7 +52,7 @@ function MembersTable({ verHistorico, datosHistoricos, afiliados, onOpenBitacora
                 {verHistorico ? 'N/A' : (a.nombre_patrocinador || <em style={{ color: '#9ca3af' }}>Raíz</em>)}
               </td>
               
-              {/* Estado estilizado con Badge Centrado */}
+              {/* Estado */}
               <td style={{ padding: '12px 10px', textAlign: 'center' }}>
                 <span style={{
                   padding: '4px 8px',
@@ -62,7 +69,7 @@ function MembersTable({ verHistorico, datosHistoricos, afiliados, onOpenBitacora
               {/* Nivel Centrado */}
               <td style={{ padding: '12px 10px', textAlign: 'center', color: '#4b5563', fontWeight: '500' }}>{a.nivel}</td>
               
-              {/* Utilidad con Formato de Moneda y Alerta en Rojo si es Negativo */}
+              {/* Utilidad */}
               <td style={{ 
                 padding: '12px 10px', 
                 textAlign: 'right', 
@@ -94,12 +101,12 @@ function MembersTable({ verHistorico, datosHistoricos, afiliados, onOpenBitacora
                 </div>
               </td>
               
-              {/* Total Comisiones Formateado */}
+              {/* Total Comisiones */}
               <td style={{ padding: '12px 10px', textAlign: 'right', fontWeight: '700', color: '#2563eb', whiteSpace: 'nowrap' }}>
                 ${Number(Math.round(a.comision_total || 0)).toLocaleString('es-CO')}
               </td>
               
-              {/* Acciones Centradas */}
+              {/* Acciones */}
               <td style={{ padding: '12px 10px', textAlign: 'center' }}>
                 {!verHistorico && (
                   <button 

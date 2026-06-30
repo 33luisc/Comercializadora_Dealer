@@ -2,6 +2,9 @@
 import React from 'react';
 
 function RegisterMemberForm({ formData, setFormData, afiliados, onRegister }) {
+  // Filtrar para que solo los miembros activos (o que no sean el usuario actual si estuvieras editando) puedan ser patrocinadores
+  const patrocinadoresDisponibles = afiliados.filter(a => a.estado === 'Activo');
+
   return (
     <form 
       onSubmit={onRegister} 
@@ -9,7 +12,9 @@ function RegisterMemberForm({ formData, setFormData, afiliados, onRegister }) {
         display: 'flex', 
         flexDirection: 'column', 
         gap: '16px',
-        fontFamily: 'sans-serif'
+        fontFamily: 'sans-serif',
+        width: '100%', // 👈 Clave para que se adapte perfectamente al Grid de App.jsx
+        boxSizing: 'border-box'
       }}
     >
       {/* Campo: Nombre Completo */}
@@ -33,7 +38,8 @@ function RegisterMemberForm({ formData, setFormData, afiliados, onRegister }) {
             borderRadius: '12px', 
             outline: 'none',
             boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.02)',
-            transition: 'border-color 0.2s, box-shadow 0.2s'
+            transition: 'border-color 0.2s, box-shadow 0.2s',
+            boxSizing: 'border-box'
           }}
           onFocus={(e) => {
             e.target.style.borderColor = '#3b82f6';
@@ -64,11 +70,12 @@ function RegisterMemberForm({ formData, setFormData, afiliados, onRegister }) {
             borderRadius: '12px', 
             outline: 'none',
             cursor: 'pointer',
-            boxShadow: '0 1px 2px rgba(0,0,0,0.02)'
+            boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
+            boxSizing: 'border-box'
           }}
         >
           <option value="">Ninguno (Es Líder Raíz)</option>
-          {afiliados.map((a) => (
+          {patrocinadoresDisponibles.map((a) => (
             <option key={a.id} value={a.id}>
               ID {a.id} - {a.nombre}
             </option>
@@ -91,7 +98,8 @@ function RegisterMemberForm({ formData, setFormData, afiliados, onRegister }) {
           border: 'none',
           cursor: 'pointer', 
           boxShadow: '0 2px 4px rgba(37, 99, 235, 0.2)',
-          transition: 'background-color 0.15s, transform 0.1s'
+          transition: 'background-color 0.15s, transform 0.1s',
+          boxSizing: 'border-box'
         }}
         onMouseEnter={(e) => e.target.style.backgroundColor = '#1d4ed8'}
         onMouseLeave={(e) => e.target.style.backgroundColor = '#2563eb'}

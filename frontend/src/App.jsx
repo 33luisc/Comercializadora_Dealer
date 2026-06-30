@@ -159,40 +159,63 @@ function App() {
           onCargarPeriodoHistorico={cargarPeriodoHistorico} onCargarDatos={cargarDatos}
         />
 
-        {/* REPARADO EL GRID PRINCIPAL */}
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start mt-6">
-          
-          {/* Columna Izquierda: Formulario (Ocupa 1 columna) */}
+        {/* FLEXBOX PRINCIPAL NATIVO (Adiós fallos de Tailwind, lado a lado garantizado) */}
           <div style={{ 
-            backgroundColor: '#ffffff', padding: '24px', borderRadius: '20px', 
-            border: '1px solid #f3f4f6', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' 
+            display: 'flex', 
+            flexWrap: 'wrap', 
+            gap: '24px', 
+            alignItems: 'flex-start', 
+            marginTop: '24px',
+            width: '100%'
           }}>
-            <h3 style={{ margin: '0 0 16px 0', fontSize: '15px', fontWeight: '800', color: '#030712', borderBottom: '1px solid #f3f4f6', paddingBottom: '12px' }}>
-              👤 Registrar Miembro
-            </h3>
-            <RegisterMemberForm 
-              formData={formData} setFormData={setFormData}
-              afiliados={afiliados} onRegister={handleRegisterAfiliado}
-            />
-          </div>
-
-          {/* Columna Derecha: Tabla/Árbol (Ocupa 3 columnas reales de Tailwind) */}
-          <div className="lg:col-span-3" style={{ 
-            backgroundColor: '#ffffff', padding: '24px', borderRadius: '20px', 
-            border: '1px solid #f3f4f6', boxShadow: '0 1px 3px rgba(0,0,0,0.02)'
-          }}>
-            {vistaActiva === 'tabla' ? (
-              <MembersTable 
-                verHistorico={verHistorico} datosHistoricos={datosHistoricos} afiliados={afiliados}
-                onOpenBitacora={cargarBitacoraAfiliado} onDelete={handleDelete}
-                onOpenTransaccion={(a) => { setSelectedAfiliado(a); setModalOpen(true); }}
+            
+            {/* Columna Izquierda: Tarjeta para el Formulario (Ancho base de 320px) */}
+            <div style={{ 
+              flex: '1 1 320px', 
+              backgroundColor: '#ffffff', 
+              padding: '24px', 
+              borderRadius: '20px', 
+              border: '1px solid #f3f4f6', 
+              boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+              boxSizing: 'border-box'
+            }}>
+              <h3 style={{ margin: '0 0 16px 0', fontSize: '15px', fontWeight: '800', color: '#030712', borderBottom: '1px solid #f3f4f6', paddingBottom: '12px' }}>
+                👤 Registrar Miembro
+              </h3>
+              <RegisterMemberForm 
+                formData={formData} 
+                setFormData={setFormData}
+                afiliados={afiliados} 
+                onRegister={handleRegisterAfiliado}
               />
-            ) : (
-              <NetworkTree afiliados={afiliados} />
-            )}
-          </div>
+            </div>
 
-        </div>
+            {/* Columna Derecha: Tarjeta para Tabla o Árbol (Toma el triple de prioridad de espacio) */}
+            <div style={{ 
+              flex: '3 1 600px', 
+              backgroundColor: '#ffffff', 
+              padding: '24px', 
+              borderRadius: '20px', 
+              border: '1px solid #f3f4f6', 
+              boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+              boxSizing: 'border-box',
+              overflow: 'hidden'
+            }}>
+              {vistaActiva === 'tabla' ? (
+                <MembersTable 
+                  verHistorico={verHistorico} 
+                  datosHistoricos={datosHistoricos} 
+                  afiliados={afiliados}
+                  onOpenBitacora={cargarBitacoraAfiliado} 
+                  onDelete={handleDelete}
+                  onOpenTransaccion={(a) => { setSelectedAfiliado(a); setModalOpen(true); }}
+                />
+              ) : (
+                <NetworkTree afiliados={afiliados} />
+              )}
+            </div>
+
+          </div>
       </main>
 
       {/* MODALES */}
