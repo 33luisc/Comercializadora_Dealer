@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import RegisterMemberForm from './components/RegisterMemberForm';
 import TransactionModal from './components/TransactionModal';
 import LogModal from './components/LogModal';
+import MembersTable from './components/MembersTable';
+import NetworkTree from './components/NetworkTree';
 
 function App() {
   const [afiliados, setAfiliados] = useState([]);
@@ -320,114 +322,23 @@ function App() {
               onRegister={handleRegisterAfiliado}
             />
 
-          {/* VISTAS CONDICIONALES (CORREGIDO EL DIV ADICIONAL Y LA ESTRUCTURA) */}
-          <div className="lg:col-span-2">
-            {vistaActiva === 'tabla' ? (
-              <div className="overflow-x-auto bg-white rounded-lg shadow border border-gray-200">
-                <div className="bg-white p-6 rounded-lg shadow-sm overflow-x-auto">
-                  <h2 className="text-xl font-bold text-gray-700 mb-4">Árbol y Bitácora Activa</h2>
-                  <table className="min-w-full divide-y divide-gray-200 text-sm text-left">
-                    <thead className="bg-gray-50 text-gray-500 uppercase text-xs font-semibold">
-                      <tr>
-                        <th className="px-3 py-3">ID</th>
-                        <th className="px-3 py-3">Nombre</th>
-                        <th className="px-3 py-3">Patrocinador</th>
-                        <th className="px-3 py-3">Estado</th>
-                        <th className="px-3 py-3">Nivel</th>
-                        <th className="px-3 py-3">U. Acumulada</th>
-                        <th className="px-3 py-3">Com. Propia</th>
-                        <th className="px-3 py-3">Com. Red</th>
-                        <th className="px-3 py-3">Bono Líder</th>
-                        <th className="px-3 py-3 font-bold text-gray-700">Total</th>
-                        <th className="px-3 py-3 text-right">Acciones</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-200 text-gray-700">
-                      {(verHistorico ? datosHistoricos : afiliados).map(a => (
-                        <tr key={a.id} className="hover:bg-gray-50 transition">
-                          <td className="px-3 py-3 font-mono text-gray-400 text-xs">{a.id}</td>
-                          <td className="px-3 py-3 font-medium text-gray-900">
-                            <div className="flex items-center space-x-2">
-                              <span>{a.nombre}</span>
-                              {!verHistorico && (
-                                <button
-                                  type="button"
-                                  onClick={() => cargarBitacoraAfiliado(a)}
-                                  className="text-gray-400 hover:text-blue-600 text-xs transition"
-                                  title="Ver historial de movimientos"
-                                >
-                                  🔍
-                                </button>
-                              )}
-                            </div>
-                          </td>
-                          <td className="px-3 py-3 text-gray-500 text-xs">
-                            {verHistorico ? 'N/A (Histórico)' : a.nombre_patrocinador}
-                          </td>
-                          <td className="px-3 py-3">
-                            <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${a.estado === 'Activo' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                              {a.estado}
-                            </span>
-                          </td>
-                          <td className="px-3 py-3">
-                            <span className={`px-1.5 py-0.5 rounded text-xs font-bold ${a.nivel === 4 ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-600'}`}>
-                              Nivel {a.nivel}
-                            </span>
-                          </td>
-                          <td className="px-3 py-3">
-                            <div className="flex items-center space-x-2">
-                              <span className="font-semibold">${Number(a.utilidad_propia).toLocaleString()}</span>
-                              {!verHistorico && (
-                                <button 
-                                  type="button"
-                                  onClick={() => { 
-                                    setSelectedAfiliado(a); 
-                                    setModalOpen(true); 
-                                  }} 
-                                  className="text-blue-600 hover:text-blue-800 text-xs bg-blue-50 hover:bg-blue-100 px-2 py-1 rounded border border-blue-200 transition font-medium"
-                                >
-                                  💸 +/-
-                                </button>
-                              )}
-                            </div>
-                          </td>
-                          <td className="px-3 py-3 text-green-600">${Math.round(a.comision_propia).toLocaleString()}</td>
-                          <td className="px-3 py-3 text-green-600">${Math.round(a.comision_por_red).toLocaleString()}</td>
-                          <td className="px-3 py-3 text-purple-600">${Math.round(a.b_liderazgo || a.bono_liderazgo || 0).toLocaleString()}</td>
-                          <td className="px-3 py-3 font-bold text-gray-900">${Math.round(a.comision_total).toLocaleString()}</td>
-                          <td className="px-3 py-3 text-right">
-                            {!verHistorico && (
-                              <button onClick={() => handleDelete(a.id)} className="text-red-400 hover:text-red-600 text-xs font-medium transition">
-                                🗑️ Borrar
-                              </button>
-                            )}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            ) : (
-              <div className="bg-gray-50 rounded-lg p-6 border border-gray-200 min-h-[400px]">
-                <h3 className="text-sm font-bold text-gray-700 uppercase tracking-wider mb-4">Estructura Jerárquica de la Red</h3>
-                
-                {afiliados.filter(a => !a.id_patrocinador || Number(a.id_patrocinador) === 0 || String(a.id_patrocinador).trim() === "").length === 0 ? (
-                  <p className="text-sm text-gray-400 italic">No hay nodos raíz registrados en la red.</p>
-                ) : (
-                  <div className="space-y-3">
-                    {afiliados
-                      .filter(a => !a.id_patrocinador || Number(a.id_patrocinador) === 0 || String(a.id_patrocinador).trim() === "")
-                      .map(raiz => (
-                        <NodoArbol key={raiz.id} miembro={raiz} todosLosAfiliados={afiliados} />
-                      ))
-                    }
-                  </div>
-                )}
-              </div>
-            )}
+          {/* VISTA ACTIVA: TABLA O ARBOL */}
+            <div style={{ flex: 2 }}>
+              {vistaActiva === 'tabla' ? (
+                <MembersTable 
+                  verHistorico={verHistorico}
+                  datosHistoricos={datosHistoricos}
+                  afiliados={afiliados}
+                  onOpenBitacora={cargarBitacoraAfiliado}
+                  onOpenTransaccion={(a) => { setSelectedAfiliado(a); setModalOpen(true); }}
+                  onDelete={handleDelete}
+                />
+              ) : (
+                <NetworkTree afiliados={afiliados} />
+              )}
+            </div>
           </div>
-        </div>
+             
       </main>
 
       {/* MODAL SENCILLO DE TRANSACCIÓN */}
@@ -450,53 +361,5 @@ function App() {
       </div>
   );
 }
-
-// Componente Auxiliar para renderizar la red (CORREGIDO: uso de useState directo)
-const NodoArbol = ({ miembro, todosLosAfiliados }) => {
-  const [abierto, setAbierto] = useState(true);
-
-  // CORREGIDO: Conversión explícita a Number para evitar problemas de tipos string vs int
-  const hijos = todosLosAfiliados.filter(a => Number(a.id_patrocinador) === Number(miembro.id));
-  const tieneHijos = hijos.length > 0;
-
-  return (
-    <div className="ml-4 pl-2 border-l border-gray-200 my-1 font-sans">
-      <div className="flex items-center space-x-2 py-1 bg-white p-2 rounded-md shadow-sm border border-gray-100 max-w-sm">
-        {tieneHijos && (
-          <button 
-            type="button"
-            onClick={() => setAbierto(!abierto)} 
-            className="text-xs font-bold text-gray-500 hover:text-blue-600 focus:outline-none w-4 h-4 flex items-center justify-center bg-gray-100 rounded"
-          >
-            {abierto ? '−' : '+'}
-          </button>
-        )}
-        {!tieneHijos && <span className="text-gray-300 text-xs">•</span>}
-        
-        <div className="flex flex-col">
-          <span className="text-sm font-semibold text-gray-900">
-            {miembro.nombre} <span className="text-xs text-gray-400 font-mono">(ID: {miembro.id})</span>
-          </span>
-          <div className="flex items-center space-x-2 mt-0.5">
-            <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded ${miembro.estado === 'Activo' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-              Nivel {miembro.nivel}
-            </span>
-            <span className="text-[11px] text-gray-500">
-              Utilidad: ${Number(miembro.utilidad_propia).toLocaleString()}
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {tieneHijos && abierto && (
-        <div className="mt-1 space-y-1">
-          {hijos.map(hijo => (
-            <NodoArbol key={hijo.id} miembro={hijo} todosLosAfiliados={todosLosAfiliados} />
-          ))}
-        </div>
-      )}
-    </div>
-  );
-};
 
 export default App;
