@@ -4,6 +4,7 @@ import TransactionModal from './components/TransactionModal';
 import LogModal from './components/LogModal';
 import MembersTable from './components/MembersTable';
 import NetworkTree from './components/NetworkTree';
+import DashboardControls from './components/DashboardControls';
 
 function App() {
   const [afiliados, setAfiliados] = useState([]);
@@ -204,66 +205,20 @@ function App() {
           <p className="text-gray-600">Gestión Profesional de Comisiones con Auditoría</p>
         </div>
 
-        <div className="flex bg-gray-100 p-1 rounded-lg max-w-xs mb-4">
-          <button
-            type="button"
-            onClick={() => setVistaActiva('tabla')}
-            className={`flex-1 text-xs font-medium py-1.5 px-3 rounded-md transition ${vistaActiva === 'tabla' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-900'}`}
-          >
-            📊 Tabla de Datos
-          </button>
-          <button
-            type="button"
-            onClick={() => setVistaActiva('arbol')}
-            className={`flex-1 text-xs font-medium py-1.5 px-3 rounded-md transition ${vistaActiva === 'arbol' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-900'}`}
-          >
-            🌿 Organigrama de Red
-          </button>
-        </div>
-        
-        <div className="mt-4 md:mt-0 flex flex-col md:flex-row items-center gap-3 bg-gray-50 p-3 rounded-md border">
-          <div className="flex flex-col">
-            <label className="text-xs text-gray-500 font-semibold uppercase">Periodo Contable</label>
-            <input 
-              type="month" 
-              value={periodoCierre} 
-              onChange={(e) => {
-                setPeriodoCierre(e.target.value);
-                if(verHistorico) cargarPeriodoHistorico(e.target.value);
-              }} 
-              className="bg-transparent font-bold text-gray-700 focus:outline-none text-sm" 
-            />
-          </div>
+        {/* CUADRO DE MANDOS Y CONTROLES */}
+          <DashboardControls 
+            afiliados={afiliados}
+            vistaActiva={vistaActiva}
+            setVistaActiva={setVistaActiva}
+            verHistorico={verHistorico}
+            setVerHistorico={setVerHistorico}
+            periodoCierre={periodoCierre}
+            setPeriodoCierre={setPeriodoCierre}
+            onCierreMes={handleCierreMes}
+            onCargarPeriodoHistorico={cargarPeriodoHistorico}
+            onCargarDatos={cargarDatos}
+          />
 
-          <div className="flex space-x-2">
-            {verHistorico ? (
-              <button 
-                onClick={() => {
-                  setVerHistorico(false);
-                  cargarDatos(); 
-                }} 
-                className="bg-blue-600 hover:bg-blue-700 text-white font-medium text-xs py-2 px-3 rounded transition"
-              >
-                👀 Ver Mes Activo
-              </button>
-            ) : (
-              <>
-                <button 
-                  onClick={() => cargarPeriodoHistorico(periodoCierre)} 
-                  className="bg-gray-600 hover:bg-gray-700 text-white font-medium text-xs py-2 px-3 rounded transition"
-                >
-                  🔍 Consultar Historial
-                </button>
-                <button 
-                  onClick={handleCierreMes} 
-                  className="bg-red-600 hover:bg-red-700 text-white font-medium text-xs py-2 px-3 rounded transition"
-                >
-                  🔒 Cerrar Mes
-                </button>
-              </>
-            )}
-          </div>
-        </div>
       </header>
 
       <main className="max-w-7xl mx-auto px-4">
