@@ -1,4 +1,7 @@
 import { useState, useEffect } from 'react';
+import RegisterMemberForm from './components/RegisterMemberForm';
+import TransactionModal from './components/TransactionModal';
+import LogModal from './components/LogModal';
 
 function App() {
   const [afiliados, setAfiliados] = useState([]);
@@ -310,27 +313,12 @@ function App() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* REGISTRO DE MIEMBRO */}
-          <div className="bg-white p-6 rounded-lg shadow-sm h-fit">
-            <h2 className="text-xl font-bold text-gray-700 mb-4">Registrar Nuevo Miembro</h2>
-            <form onSubmit={handleRegisterAfiliado} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-600">Nombre Completo</label>
-                <input type="text" required value={formData.nombre} onChange={(e) => setFormData({...formData, nombre: e.target.value})} className="mt-1 block w-full rounded-md border p-2 bg-gray-50 focus:outline-blue-500 text-sm" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-600">Patrocinador Directo</label>
-                <select value={formData.id_patrocinador} onChange={(e) => setFormData({...formData, id_patrocinador: e.target.value})} className="mt-1 block w-full rounded-md border p-2 bg-gray-50 focus:outline-blue-500 text-sm">
-                  <option value="">Ninguno (Es Líder Raíz)</option>
-                  {afiliados.map(a => (
-                    <option key={a.id} value={a.id}>{a.nombre} (ID: {a.id})</option>
-                  ))}
-                </select>
-              </div>
-              <button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 rounded-md text-sm transition">
-                Agregar Estructura
-              </button>
-            </form>
-          </div>
+            <RegisterMemberForm 
+              formData={formData}
+              setFormData={setFormData}
+              afiliados={afiliados}
+              onRegister={handleRegisterAfiliado}
+            />
 
           {/* VISTAS CONDICIONALES (CORREGIDO EL DIV ADICIONAL Y LA ESTRUCTURA) */}
           <div className="lg:col-span-2">
@@ -442,85 +430,24 @@ function App() {
         </div>
       </main>
 
-      {/* MODAL SENCILLO */}
-      {modalOpen && selectedAfiliado && (
-        <div 
-          style={{
-            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.6)', display: 'flex',
-            alignItems: 'center', justifyContent: 'center', zIndex: 99999,
-            backdropFilter: 'blur(4px)'
-          }}
-        >
-          <div style={{ backgroundColor: '#ffffff', borderRadius: '12px', padding: '24px', maxWidth: '400px', width: '100%', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)', fontFamily: 'sans-serif' }}>
-            <h3 style={{ margin: '0 0 4px 0', fontSize: '18px', fontWeight: 'bold', color: '#111827' }}>Registrar Transacción</h3>
-            <p style={{ margin: '0 0 20px 0', fontSize: '14px', color: '#6b7280' }}>Modificar saldo para: <strong style={{ color: '#2563eb' }}>{selectedAfiliado.nombre}</strong></p>
-            
-            <form onSubmit={handleAddTransaccion}>
-              <div style={{ marginBottom: '16px' }}>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 'bold', color: '#4b5563', marginBottom: '6px', textTransform: 'uppercase' }}>Monto ($)</label>
-                <input type="number" required placeholder="Ej: 1500000 o -200000" value={transData.monto} onChange={(e) => setTransData({...transData, monto: e.target.value})} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #d1d5db', backgroundColor: '#f9fafb', fontSize: '14px', boxSizing: 'border-box' }} />
-              </div>
+      {/* MODAL SENCILLO DE TRANSACCIÓN */}
+        <TransactionModal 
+          modalOpen={modalOpen}
+          selectedAfiliado={selectedAfiliado}
+          transData={transData}
+          setTransData={setTransData}
+          onClose={() => { setModalOpen(false); setSelectedAfiliado(null); setTransData({ monto: '', descripcion: '' }); }}
+          onSubmit={handleAddTransaccion}
+        />
 
-              <div style={{ marginBottom: '24px' }}>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 'bold', color: '#4b5563', marginBottom: '6px', textTransform: 'uppercase' }}>Concepto</label>
-                <input type="text" required placeholder="Ej: Venta de Componentes" value={transData.descripcion} onChange={(e) => setTransData({...transData, descripcion: e.target.value})} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #d1d5db', backgroundColor: '#f9fafb', fontSize: '14px', boxSizing: 'border-box' }} />
-              </div>
-              
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', borderTop: '1px solid #e5e7eb', paddingTop: '16px' }}>
-                <button type="button" onClick={() => { setModalOpen(false); setSelectedAfiliado(null); setTransData({ monto: '', descripcion: '' }); }} style={{ padding: '8px 16px', borderRadius: '6px', border: '1px solid #d1d5db', backgroundColor: '#ffffff', color: '#374151', cursor: 'pointer', fontSize: '14px' }}>Cancelar</button>
-                <button type="submit" style={{ padding: '8px 16px', borderRadius: '6px', border: 'none', backgroundColor: '#2563eb', color: '#ffffff', cursor: 'pointer', fontWeight: '600', fontSize: '14px' }}>Aplicar Ajuste</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* VISOR DE BITÁCORA DE TRANSACCIONES */}
-      {verBitacora && afiliadoSeleccionadoBitacora && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0, 0, 0, 0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99998, backdropFilter: 'blur(2px)' }}>
-          <div style={{ backgroundColor: '#ffffff', borderRadius: '12px', padding: '24px', maxWidth: '500px', width: '100%', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)', fontFamily: 'sans-serif', maxHeight: '80vh', display: 'flex', flexDirection: 'column' }}>
-            <div style={{ borderBottom: '1px solid #e5e7eb', paddingBottom: '12px', marginBottom: '16px' }}>
-              <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 'bold', color: '#111827' }}>Historial de Ventas / Ajustes</h3>
-              <p style={{ margin: '4px 0 0 0', fontSize: '14px', color: '#4b5563' }}>Mes en curso para: <strong style={{ color: '#2563eb' }}>{afiliadoSeleccionadoBitacora.nombre}</strong></p>
-            </div>
-
-            <div style={{ flex: 1, overflowY: 'auto', marginBottom: '20px' }}>
-              {listaTransacciones.length === 0 ? (
-                <p style={{ textAlign: 'center', color: '#9ca3af', fontSize: '14px', margin: '30px 0' }}>No hay movimientos registrados este mes.</p>
-              ) : (
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', textAlign: 'left' }}>
-                  <thead>
-                    <tr style={{ borderBottom: '2px solid #e5e7eb', color: '#374151' }}>
-                      <th style={{ padding: '8px 4px' }}>Concepto</th>
-                      <th style={{ padding: '8px 4px', textAlign: 'right' }}>Monto</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {listaTransacciones.map((t) => (
-                      <tr key={t.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
-                        <td style={{ padding: '8px 4px' }}>
-                          <div style={{ fontWeight: '500', color: '#111827' }}>{t.descripcion}</div>
-                          <div style={{ fontSize: '11px', color: '#9ca3af' }}>{t.fecha}</div>
-                        </td>
-                        <td style={{ padding: '8px 4px', textAlign: 'right', fontWeight: 'bold', color: t.monto >= 0 ? '#16a34a' : '#dc2626' }}>
-                          {t.monto >= 0 ? `+` : ''}${Number(t.monto).toLocaleString()}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
-            </div>
-
-            <div style={{ display: 'flex', justifyContent: 'flex-end', borderTop: '1px solid #e5e7eb', paddingTop: '16px' }}>
-              <button onClick={() => { setVerBitacora(false); setAfiliadoSeleccionadoBitacora(null); }} style={{ padding: '8px 20px', borderRadius: '6px', border: '1px solid #d1d5db', backgroundColor: '#ffffff', cursor: 'pointer', fontSize: '14px', fontWeight: '500' }}>Cerrar Ventana</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-    </div>
+        {/* VISOR DE BITÁCORA DE TRANSACCIONES */}
+        <LogModal 
+          verBitacora={verBitacora}
+          afiliadoSeleccionadoBitacora={afiliadoSeleccionadoBitacora}
+          listaTransacciones={listaTransacciones}
+          onClose={() => { setVerBitacora(false); setAfiliadoSeleccionadoBitacora(null); }}
+        />
+      </div>
   );
 }
 
