@@ -7,7 +7,7 @@ function MembersTable({ verHistorico, datosHistoricos, afiliados, onOpenBitacora
   return (
     <div style={{ backgroundColor: '#ffffff', borderRadius: '8px', padding: '16px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', overflowX: 'auto' }}>
       <h3 style={{ margin: '0 0 12px 0', fontSize: '16px', fontWeight: 'bold', color: '#374151' }}>
-        {verHistorico ? 'Historial de Miembros' : 'Árbol y Bitácora Activa'}
+        {verHistorico ? 'Historial de Miembros' : '📊 Árbol y Bitácora Activa'}
       </h3>
       <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
         <thead>

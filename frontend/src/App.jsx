@@ -257,10 +257,7 @@ function App() {
               boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
               flex: 3 // Respaldo de alineación flex
             }}>
-              <h3 style={{ margin: '0 0 16px 0', fontSize: '15px', fontWeight: '800', color: '#030712' }}>
-                📊 Árbol y Bitácora Activa
-              </h3>
-              
+                            
               {vistaActiva === 'tabla' ? (
                 <MembersTable 
                   verHistorico={verHistorico}
