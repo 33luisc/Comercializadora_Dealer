@@ -226,32 +226,56 @@ function App() {
         />
 
         {/* CONTENIDO INTERACTIVO (Formulario + Visualizador) */}
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start mt-6">
-          <div className="lg:col-span-1 bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start mt-6">
             
-            <RegisterMemberForm 
-              formData={formData}
-              setFormData={setFormData}
-              afiliados={afiliados}
-              onRegister={handleRegisterAfiliado}
-            />
-          </div>
-
-          <div className="lg:col-span-3 bg-white p-5 rounded-2xl border border-gray-100 shadow-sm min-h-[400px]">
-            {vistaActiva === 'tabla' ? (
-              <MembersTable 
-                verHistorico={verHistorico}
-                datosHistoricos={datosHistoricos}
+            {/* Columna Izquierda: Tarjeta de Registro */}
+            <div style={{ 
+              backgroundColor: '#ffffff', 
+              padding: '24px', 
+              borderRadius: '20px', 
+              border: '1px solid #f3f4f6', 
+              boxShadow: '0 1px 3px rgba(0,0,0,0.02)' 
+            }}>
+              <h3 style={{ margin: '0 0 16px 0', fontSize: '18px', fontWeight: '800', color: '#030712', borderBottom: '1px solid #f3f4f6', paddingBottom: '12px' }}>
+                👤 Registrar Nuevo Miembro
+              </h3>
+              <RegisterMemberForm 
+                formData={formData}
+                setFormData={setFormData}
                 afiliados={afiliados}
-                onOpenBitacora={cargarBitacoraAfiliado}
-                onOpenTransaccion={(a) => { setSelectedAfiliado(a); setModalOpen(true); }}
-                onDelete={handleDelete}
+                onRegister={handleRegisterAfiliado}
               />
-            ) : (
-              <NetworkTree afiliados={afiliados} />
-            )}
+            </div>
+
+            {/* Columna Derecha: Tabla de Afiliados */}
+            <div style={{ 
+              className: "lg:col-span-3", // Mantiene el ancho en sistemas grid si lo usas
+              backgroundColor: '#ffffff', 
+              padding: '24px', 
+              borderRadius: '20px', 
+              border: '1px solid #f3f4f6', 
+              boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+              flex: 3 // Respaldo de alineación flex
+            }}>
+              <h3 style={{ margin: '0 0 16px 0', fontSize: '15px', fontWeight: '800', color: '#030712' }}>
+                📊 Árbol y Bitácora Activa
+              </h3>
+              
+              {vistaActiva === 'tabla' ? (
+                <MembersTable 
+                  verHistorico={verHistorico}
+                  datosHistoricos={datosHistoricos}
+                  afiliados={afiliados}
+                  onOpenBitacora={cargarBitacoraAfiliado}
+                  onOpenTransaccion={(a) => { setSelectedAfiliado(a); setModalOpen(true); }}
+                  onDelete={handleDelete}
+                />
+              ) : (
+                <NetworkTree afiliados={afiliados} />
+              )}
+            </div>
+
           </div>
-        </div>
       </main>
 
       {/* CONTENEDORES MODALES DE ACCIONES */}
