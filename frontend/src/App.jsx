@@ -1,6 +1,7 @@
 // src/App.jsx
-import { useState, useEffect } from 'react';
-import { apiService } from './services/api';
+import { useState } from 'react';
+import { useDashboardData } from './hooks/useDashboardData';
+import NotificationToasts from './components/NotificationToasts';
 import RegisterMemberForm from './components/RegisterMemberForm';
 import TransactionModal from './components/TransactionModal';
 import LogModal from './components/LogModal';
@@ -9,137 +10,30 @@ import NetworkTree from './components/NetworkTree';
 import DashboardControls from './components/DashboardControls';
 
 function App() {
-  const [afiliados, setAfiliados] = useState([]);
-  const [rentabilidad, setRentabilidad] = useState({
-    utilidadGlobal: 0, comisionesPagadas: 0, margenLibre: 0, porcentajeRepartido: 0
-  });
+  // 1. Extraemos todo el estado y funciones desde nuestro custom hook
+  const {
+    afiliados, rentabilidad, periodoCierre, setPeriodoCierre,
+    errorMsg, setErrorMsg, successMsg, setSuccessMsg,
+    modalOpen, setModalOpen, selectedAfiliado, setSelectedAfiliado, transData, setTransData,
+    verHistorico, setVerHistorico, datosHistoricos,
+    verBitacora, setVerBitacora, afiliadoSeleccionadoBitacora, setAfiliadoSeleccionadoBitacora, listaTransacciones,
+    cargarDatos, cargarPeriodoHistorico, handleRegisterAfiliado, handleAddTransaccion, handleCierreMes, handleDelete, cargarBitacoraAfiliado
+  } = useDashboardData();
+
+  // 2. Conservamos aquí los únicos dos estados que controlan formularios e interfaz local en el App
   const [formData, setFormData] = useState({ nombre: '', id_patrocinador: '' });
-  const [errorMsg, setErrorMsg] = useState('');
-  const [successMsg, setSuccessMsg] = useState('');
-  const [periodoCierre, setPeriodoCierre] = useState('');
-
-  // Modales
-  const [modalOpen, setModalOpen] = useState(false);
-  const [selectedAfiliado, setSelectedAfiliado] = useState(null);
-  const [transData, setTransData] = useState({ monto: '', descripcion: '' });
-
-  const [verHistorico, setVerHistorico] = useState(false); 
-  const [datosHistoricos, setDatosHistoricos] = useState([]); 
-
-  const [verBitacora, setVerBitacora] = useState(false); 
-  const [afiliadoSeleccionadoBitacora, setAfiliadoSeleccionadoBitacora] = useState(null); 
-  const [listaTransacciones, setListaTransacciones] = useState([]); 
-
   const [vistaActiva, setVistaActiva] = useState('tabla'); 
-
-  const cargarDatos = async () => {
-    try {
-      const data = await apiService.obtenerDatosIniciales();
-      setAfiliados(data.afiliados);
-      setRentabilidad(data.rentabilidad);
-    } catch (error) {
-      console.error("Error conectando con la API:", error);
-    }
-  };
-
-  const cargarPeriodoHistorico = async (periodo) => {
-    if (!periodo) return;
-    try {
-      setErrorMsg('');
-      const data = await apiService.consultarHistorico(periodo);
-      if (data.length === 0) {
-        alert(`No se encontraron registros guardados para el periodo ${periodo}`);
-        setVerHistorico(false);
-        cargarDatos(); 
-      } else {
-        setDatosHistoricos(data);
-        setVerHistorico(true);
-      }
-    } catch (error) {
-      setErrorMsg(error.message);
-      setVerHistorico(false);
-    }
-  };
-
-  useEffect(() => {
-    cargarDatos();
-    const fecha = new Date();
-    const mes = String(fecha.getMonth() + 1).padStart(2, '0');
-    setPeriodoCierre(`${fecha.getFullYear()}-${mes}`);
-  }, []);
-
-  const handleRegisterAfiliado = async (e) => {
-    e.preventDefault();
-    setErrorMsg(''); setSuccessMsg('');
-    try {
-      await apiService.registrarAfiliado(formData.nombre, formData.id_patrocinador);
-      setSuccessMsg(`Afiliado "${formData.nombre}" registrado con éxito.`);
-      setFormData({ nombre: '', id_patrocinador: '' });
-      cargarDatos();
-    } catch (error) {
-      setErrorMsg(error.message);
-    }
-  };
-
-  const handleAddTransaccion = async (e) => {
-    e.preventDefault();
-    setErrorMsg('');
-    try {
-      await apiService.agregarTransaccion(selectedAfiliado.id, transData.monto, transData.descripcion);
-      setModalOpen(false);
-      setTransData({ monto: '', descripcion: '' });
-      cargarDatos();
-    } catch (error) {
-      setErrorMsg(error.message);
-    }
-  };
-
-  const handleCierreMes = async () => {
-    if (window.confirm(`¿Estás seguro de cerrar el periodo ${periodoCierre}? Esto congelará las comisiones y reiniciará el mes a $0.`)) {
-      setErrorMsg(''); setSuccessMsg('');
-      try {
-        const data = await apiService.ejecutarCierre(periodoCierre);
-        setSuccessMsg(data.message);
-        cargarDatos();
-      } catch (error) {
-        setErrorMsg(error.message);
-      }
-    }
-  };
-
-  const handleDelete = async (id) => {
-    if (window.confirm("¿Deseas eliminar este afiliado de la red?")) {
-      setErrorMsg(''); setSuccessMsg('');
-      try {
-        await apiService.eliminarAfiliado(id);
-        setSuccessMsg('Afiliado removido con éxito.');
-        cargarDatos();
-      } catch (error) {
-        setErrorMsg(error.message);
-      }
-    }
-  };
-
-  const cargarBitacoraAfiliado = async (afiliado) => {
-    try {
-      setErrorMsg('');
-      const data = await apiService.consultarTransacciones(afiliado.id);
-      setListaTransacciones(data);
-      setAfiliadoSeleccionadoBitacora(afiliado);
-      setVerBitacora(true);
-    } catch (error) {
-      setErrorMsg(error.message);
-    }
-  };
 
   return (
     <div className="min-h-screen bg-gray-50/50 text-gray-900 antialiased font-sans pb-12">
       
-      {/* NOTIFICACIONES */}
-      <div className="max-w-7xl mx-auto px-4 pt-4 sm:px-6 lg:px-8">
-        {errorMsg && <div className="mb-2 bg-red-50 border-l-4 border-red-500 p-3 rounded-r-xl text-xs text-red-700 font-semibold shadow-sm">⚠️ {errorMsg}</div>}
-        {successMsg && <div className="mb-2 bg-green-50 border-l-4 border-green-500 p-3 rounded-r-xl text-xs text-green-700 font-semibold shadow-sm">✨ {successMsg}</div>}
-      </div>
+      {/* COMPONENTE DE NOTIFICACIONES EXTRAÍDO */}
+      <NotificationToasts 
+        errorMsg={errorMsg} 
+        successMsg={successMsg} 
+        setErrorMsg={setErrorMsg} 
+        setSuccessMsg={setSuccessMsg} 
+      />
 
       {/* ENCABEZADO */}
       <header className="bg-white border-b border-gray-200/60 py-5 mb-6">
@@ -159,66 +53,66 @@ function App() {
           onCargarPeriodoHistorico={cargarPeriodoHistorico} onCargarDatos={cargarDatos}
         />
 
-        {/* FLEXBOX PRINCIPAL NATIVO (Adiós fallos de Tailwind, lado a lado garantizado) */}
+        {/* CONTENEDOR FLEXBOX */}
+        <div style={{ 
+          display: 'flex', 
+          flexWrap: 'wrap', 
+          gap: '24px', 
+          alignItems: 'flex-start', 
+          marginTop: '24px',
+          width: '100%'
+        }}>
+          
+          {/* Columna Izquierda: Formulario */}
           <div style={{ 
-            display: 'flex', 
-            flexWrap: 'wrap', 
-            gap: '24px', 
-            alignItems: 'flex-start', 
-            marginTop: '24px',
-            width: '100%'
+            flex: '1 1 320px', 
+            backgroundColor: '#ffffff', 
+            padding: '24px', 
+            borderRadius: '20px', 
+            border: '1px solid #f3f4f6', 
+            boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+            boxSizing: 'border-box'
           }}>
-            
-            {/* Columna Izquierda: Tarjeta para el Formulario (Ancho base de 320px) */}
-            <div style={{ 
-              flex: '1 1 320px', 
-              backgroundColor: '#ffffff', 
-              padding: '24px', 
-              borderRadius: '20px', 
-              border: '1px solid #f3f4f6', 
-              boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
-              boxSizing: 'border-box'
-            }}>
-              <h3 style={{ margin: '0 0 16px 0', fontSize: '15px', fontWeight: '800', color: '#030712', borderBottom: '1px solid #f3f4f6', paddingBottom: '12px' }}>
-                👤 Registrar Miembro
-              </h3>
-              <RegisterMemberForm 
-                formData={formData} 
-                setFormData={setFormData}
-                afiliados={afiliados} 
-                onRegister={handleRegisterAfiliado}
-              />
-            </div>
-
-            {/* Columna Derecha: Tarjeta para Tabla o Árbol (Toma el triple de prioridad de espacio) */}
-            <div style={{ 
-              flex: '3 1 600px', 
-              backgroundColor: '#ffffff', 
-              padding: '24px', 
-              borderRadius: '20px', 
-              border: '1px solid #f3f4f6', 
-              boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
-              boxSizing: 'border-box',
-              overflow: 'hidden'
-            }}>
-              {vistaActiva === 'tabla' ? (
-                <MembersTable 
-                  verHistorico={verHistorico} 
-                  datosHistoricos={datosHistoricos} 
-                  afiliados={afiliados}
-                  onOpenBitacora={cargarBitacoraAfiliado} 
-                  onDelete={handleDelete}
-                  onOpenTransaccion={(a) => { setSelectedAfiliado(a); setModalOpen(true); }}
-                />
-              ) : (
-                <NetworkTree afiliados={afiliados} />
-              )}
-            </div>
-
+            <h3 style={{ margin: '0 0 16px 0', fontSize: '15px', fontWeight: '800', color: '#030712', borderBottom: '1px solid #f3f4f6', paddingBottom: '12px' }}>
+              👤 Registrar Miembro
+            </h3>
+            <RegisterMemberForm 
+              formData={formData} 
+              setFormData={setFormData}
+              afiliados={afiliados} 
+              onRegister={(e) => handleRegisterAfiliado(e, formData, setFormData)}
+            />
           </div>
+
+          {/* Columna Derecha: Tabla o Árbol */}
+          <div style={{ 
+            flex: '3 1 600px', 
+            backgroundColor: '#ffffff', 
+            padding: '24px', 
+            borderRadius: '20px', 
+            border: '1px solid #f3f4f6', 
+            boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+            boxSizing: 'border-box',
+            overflow: 'hidden'
+          }}>
+            {vistaActiva === 'tabla' ? (
+              <MembersTable 
+                verHistorico={verHistorico} 
+                datosHistoricos={datosHistoricos} 
+                afiliados={afiliados}
+                onOpenBitacora={cargarBitacoraAfiliado} 
+                onDelete={handleDelete}
+                onOpenTransaccion={(a) => { setSelectedAfiliado(a); setModalOpen(true); }}
+              />
+            ) : (
+              <NetworkTree afiliados={afiliados} />
+            )}
+          </div>
+
+        </div>
       </main>
 
-      {/* MODALES */}
+      {/* MODALES MANTENIDOS AL FINAL */}
       <TransactionModal 
         modalOpen={modalOpen} selectedAfiliado={selectedAfiliado} transData={transData} setTransData={setTransData}
         onClose={() => { setModalOpen(false); setSelectedAfiliado(null); setTransData({ monto: '', descripcion: '' }); }}
