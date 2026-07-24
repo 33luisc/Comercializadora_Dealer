@@ -33,7 +33,7 @@ function MembersTable({ verHistorico, datosHistoricos = [], afiliados = [], onOp
         <div style={{ position: 'relative', flex: '1', minWidth: '220px', maxWidth: '360px' }}>
           <input 
             type="text" 
-            placeholder="🔍 Buscar..."
+            placeholder="Buscar por nombre, cédula, celular o ID..."
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
             style={{ 
