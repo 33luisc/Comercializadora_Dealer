@@ -13,13 +13,18 @@ export const apiService = {
     };
   },
 
-  async registrarAfiliado(nombre, idPatrocinador) {
+  // 👈 Recibe todo el objeto formData con los nuevos campos obligatorios y opcionales
+  async registrarAfiliado(formData) {
     const res = await fetch(`${API_BASE}/afiliados`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        nombre,
-        id_patrocinador: idPatrocinador ? parseInt(idPatrocinador) : null
+        nombre: formData.nombre,
+        apellido: formData.apellido,
+        cedula: formData.cedula,
+        celular: formData.celular,
+        correo: formData.correo || null,
+        id_patrocinador: formData.id_patrocinador ? parseInt(formData.id_patrocinador) : null
       })
     });
     const data = await res.json();

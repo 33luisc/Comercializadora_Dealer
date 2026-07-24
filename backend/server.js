@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const sqlite3 = require('sqlite3').verbose();
+
 const app = express();
 const PORT = process.env.PORT || 4000;
 
@@ -20,18 +21,28 @@ app.use(express.json());
 // CONEXIÓN Y CREACIÓN DE LA BASE DE DATOS
 // ==========================================
 const db = new sqlite3.Database('./comercializadora.db', (err) => {
-    if (err) console.error('Error al abrir la base de datos:', err.message);
-    else console.log('📦 Conectado con éxito a SQLite (comercializadora.db)');
+    if (err) {
+        console.error('Error al abrir la base de datos:', err.message);
+    } else {
+        console.log('📦 Conectado con éxito a SQLite (comercializadora.db)');
+        // Activar llaves foráneas en SQLite
+        db.run('PRAGMA foreign_keys = ON;');
+    }
 });
 
-// Crear las tablas si no existen
+// Crear las tablas si no existen con las nuevas columnas
 db.serialize(() => {
     db.run(`
         CREATE TABLE IF NOT EXISTS afiliados (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             nombre TEXT NOT NULL,
+            apellido TEXT NOT NULL,
+            cedula TEXT UNIQUE NOT NULL,
+            celular TEXT NOT NULL,
+            correo TEXT UNIQUE,
             id_patrocinador INTEGER,
-            ruta_de_red TEXT
+            ruta_de_red TEXT,
+            FOREIGN KEY(id_patrocinador) REFERENCES afiliados(id)
         )
     `);
 
@@ -42,7 +53,7 @@ db.serialize(() => {
             monto REAL NOT NULL,
             descripcion TEXT,
             fecha TEXT DEFAULT (datetime('now', 'localtime')),
-            FOREIGN KEY(id_afiliado) REFERENCES afiliados(id)
+            FOREIGN KEY(id_afiliado) REFERENCES afiliados(id) ON DELETE CASCADE
         )
     `);
 
@@ -52,6 +63,8 @@ db.serialize(() => {
             periodo TEXT NOT NULL,
             id_afiliado INTEGER NOT NULL,
             nombre TEXT NOT NULL,
+            apellido TEXT NOT NULL,
+            cedula TEXT NOT NULL,
             nivel INTEGER DEFAULT 0,
             estado TEXT NOT NULL,
             utilidad_propia REAL DEFAULT 0,
@@ -76,18 +89,23 @@ function obtenerNivel(utilidadTotal) {
 
 function procesarCalculosMLM(afiliados) {
     const mapaUsuarios = {};
-    afiliados.forEach(u => { mapaUsuarios[u.id] = u.nombre; });
+    afiliados.forEach(u => { 
+        mapaUsuarios[u.id] = `${u.nombre} ${u.apellido}`; 
+    });
 
     // 1. CALCULAR UTILIDAD TOTAL DE CALIFICACIÓN
     afiliados.forEach(usuario => {
-        usuario.nombre_patrocinador = usuario.id_patrocinador ? (mapaUsuarios[usuario.id_patrocinador] || `ID: ${usuario.id_patrocinador}`) : 'Ninguno (Raíz)';
+        usuario.nombre_patrocinador = usuario.id_patrocinador 
+            ? (mapaUsuarios[usuario.id_patrocinador] || `ID: ${usuario.id_patrocinador}`) 
+            : 'Ninguno (Raíz)';
 
-        const rutaBuscada = `${usuario.ruta_de_red}`;
-        const utilidadDescendentes = afiliados
-            .filter(sub => sub.id !== usuario.id && sub.ruta_de_red.startsWith(rutaBuscada))
-            .reduce((suma, sub) => suma + sub.utilidad_propia, 0);
+        const rutaBuscada = usuario.ruta_de_red;
+        
+        // Corrección de delimitador para evitar falsos positivos con startsWith (ej. /1/ vs /10/)
+        const descendientes = afiliados.filter(sub => sub.id !== usuario.id && sub.ruta_de_red && sub.ruta_de_red.startsWith(rutaBuscada));
+        const utilidadDescendentes = descendientes.reduce((suma, sub) => suma + (sub.utilidad_propia || 0), 0);
 
-        usuario.utilidad_total_calificacion = usuario.utilidad_propia + utilidadDescendentes;
+        usuario.utilidad_total_calificacion = (usuario.utilidad_propia || 0) + utilidadDescendentes;
         
         // REGLA DE ACTIVACIÓN: Compra mínima $50,000
         if (usuario.utilidad_propia >= 50000) {
@@ -113,7 +131,7 @@ function procesarCalculosMLM(afiliados) {
         usuario.comision_por_red = 0;
         usuario.bono_liderazgo = 0;
 
-        const descendientes = afiliados.filter(sub => sub.id !== usuario.id && sub.ruta_de_red.startsWith(usuario.ruta_de_red));
+        const descendientes = afiliados.filter(sub => sub.id !== usuario.id && sub.ruta_de_red && sub.ruta_de_red.startsWith(usuario.ruta_de_red));
 
         descendientes.forEach(desc => {
             if (desc.nivel === 1) usuario.comision_por_red += desc.utilidad_propia * CONFIG_MLM.SPREAD_RED[1];
@@ -151,7 +169,7 @@ function procesarCalculosMLM(afiliados) {
 // ENDPOINTS / RUTAS DE LA API
 // ==========================================
 
-// 1. Obtener afiliados con utilidad calculada
+// 1. Obtener todos los afiliados con sus cálculos MLM
 app.get('/api/afiliados', (req, res) => {
     const query = `
         SELECT a.*, COALESCE(SUM(t.monto), 0) as utilidad_propia
@@ -167,52 +185,120 @@ app.get('/api/afiliados', (req, res) => {
     });
 });
 
-// 2. Registrar nuevo afiliado
-app.post('/api/afiliados', (req, res) => {
-    const { nombre, id_patrocinador } = req.body;
+// 2. Búsqueda de usuarios por cualquier parámetro (Nombre, Apellido, Cédula, Celular, Correo, ID)
+app.get('/api/afiliados/buscar', (req, res) => {
+    const { q } = req.query;
 
-    if (!nombre || nombre.trim() === '') {
-        return res.status(400).json({ error: 'El nombre del afiliado es obligatorio.' });
+    if (!q || q.trim() === '') {
+        return res.json([]);
     }
+
+    const termino = `%${q.trim()}%`;
+    const query = `
+        SELECT id, nombre, apellido, cedula, celular, correo, id_patrocinador, ruta_de_red 
+        FROM afiliados 
+        WHERE id LIKE ? 
+           OR nombre LIKE ? 
+           OR apellido LIKE ? 
+           OR cedula LIKE ? 
+           OR celular LIKE ? 
+           OR correo LIKE ?
+        LIMIT 20
+    `;
+
+    db.all(query, [termino, termino, termino, termino, termino, termino], (err, rows) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json(rows);
+    });
+});
+
+// 3. Obtener un afiliado por ID (útil para la validación previa del patrocinador en frontend)
+app.get('/api/afiliados/:id', (req, res) => {
+    const { id } = req.params;
+    db.get(`SELECT id, nombre, apellido, cedula, celular, correo, id_patrocinador FROM afiliados WHERE id = ?`, [id], (err, row) => {
+        if (err) return res.status(500).json({ error: err.message });
+        if (!row) return res.status(404).json({ error: 'Afiliado no encontrado.' });
+        res.json(row);
+    });
+});
+
+// 4. Registrar nuevo afiliado (con validaciones ajustadas)
+app.post('/api/afiliados', (req, res) => {
+    const { nombre, apellido, cedula, celular, correo, id_patrocinador } = req.body;
+
+    // Validaciones de campos obligatorios
+    if (!nombre || nombre.trim() === '') {
+        return res.status(400).json({ error: 'El nombre es obligatorio.' });
+    }
+    if (!apellido || apellido.trim() === '') {
+        return res.status(400).json({ error: 'El apellido es obligatorio.' });
+    }
+    if (!cedula || cedula.trim() === '') {
+        return res.status(400).json({ error: 'La cédula es obligatoria.' });
+    }
+    if (!celular || celular.trim() === '') {
+        return res.status(400).json({ error: 'El celular es obligatorio.' });
+    }
+
+    const correoLimpio = (correo && correo.trim() !== '') ? correo.trim() : null;
+    const idPatrocinadorLimpio = id_patrocinador ? parseInt(id_patrocinador) : null;
 
     const registrarHijo = (idPadre, rutaPadre) => {
         db.get(`SELECT COUNT(*) as total_directos FROM afiliados WHERE id_patrocinador = ?`, [idPadre], (countErr, row) => {
             if (countErr) return res.status(500).json({ error: countErr.message });
             if (idPadre && row.total_directos >= 15) {
-                return res.status(400).json({ error: `El patrocinador (ID: ${idPadre}) ya alcanzó el límite de 15 directos.` });
+                return res.status(400).json({ error: `El patrocinador (ID: ${idPadre}) ya alcanzó el límite máximo de 15 directos.` });
             }
 
-            const queryInsert = `INSERT INTO afiliados (nombre, id_patrocinador, ruta_de_red) VALUES (?, ?, 'temp')`;
-            db.run(queryInsert, [nombre, idPadre], function(insertErr) {
-                if (insertErr) return res.status(500).json({ error: insertErr.message });
+            const queryInsert = `
+                INSERT INTO afiliados (nombre, apellido, cedula, celular, correo, id_patrocinador, ruta_de_red) 
+                VALUES (?, ?, ?, ?, ?, ?, 'temp')
+            `;
 
-                const nuevaRuta = idPadre ? `${rutaPadre}${this.lastID}/` : `/${this.lastID}/`;
-                db.run(`UPDATE afiliados SET ruta_de_red = ? WHERE id = ?`, [nuevaRuta, this.lastID], (pathErr) => {
+            db.run(queryInsert, [nombre.trim(), apellido.trim(), cedula.trim(), celular.trim(), correoLimpio, idPadre], function(insertErr) {
+                if (insertErr) {
+                    if (insertErr.message.includes('UNIQUE constraint failed: afiliados.cedula')) {
+                        return res.status(400).json({ error: 'La cédula ingresada ya se encuentra registrada.' });
+                    }
+                    if (insertErr.message.includes('UNIQUE constraint failed: afiliados.correo')) {
+                        return res.status(400).json({ error: 'El correo electrónico ingresado ya se encuentra registrado.' });
+                    }
+                    return res.status(500).json({ error: insertErr.message });
+                }
+
+                const newId = this.lastID;
+                const nuevaRuta = idPadre ? `${rutaPadre}${newId}/` : `/${newId}/`;
+
+                db.run(`UPDATE afiliados SET ruta_de_red = ? WHERE id = ?`, [nuevaRuta, newId], (pathErr) => {
                     if (pathErr) return res.status(500).json({ error: pathErr.message });
-                    res.status(201).json({ message: 'Afiliado registrado', id: this.lastID });
+                    res.status(201).json({ 
+                        message: 'Afiliado registrado exitosamente.', 
+                        id: newId,
+                        codigo: newId
+                    });
                 });
             });
         });
     };
 
-    if (!id_patrocinador) {
+    if (!idPatrocinadorLimpio) {
         registrarHijo(null, null);
     } else {
-        db.get(`SELECT ruta_de_red FROM afiliados WHERE id = ?`, [parseInt(id_patrocinador)], (err, padre) => {
+        db.get(`SELECT id, ruta_de_red FROM afiliados WHERE id = ?`, [idPatrocinadorLimpio], (err, padre) => {
             if (err) return res.status(500).json({ error: err.message });
-            if (!padre) return res.status(400).json({ error: 'El patrocinador no existe.' });
-            registrarHijo(parseInt(id_patrocinador), padre.ruta_de_red);
+            if (!padre) return res.status(400).json({ error: `El patrocinador con código/ID ${idPatrocinadorLimpio} no existe.` });
+            registrarHijo(idPatrocinadorLimpio, padre.ruta_de_red);
         });
     }
 });
 
-// 3. Registrar una transacción
+// 5. Registrar una transacción
 app.post('/api/transacciones', (req, res) => {
     const { id_afiliado, monto, descripcion } = req.body;
     const valor = parseFloat(monto);
 
     if (!id_afiliado || isNaN(valor)) {
-        return res.status(400).json({ error: 'ID de afiliado y monto válido son requeridos.' });
+        return res.status(400).json({ error: 'ID de afiliado y un monto válido son requeridos.' });
     }
 
     const query = `INSERT INTO transacciones (id_afiliado, monto, descripcion) VALUES (?, ?, ?)`;
@@ -222,7 +308,7 @@ app.post('/api/transacciones', (req, res) => {
     });
 });
 
-// 4. CORREGIDO: Cierre de Periodo Mensual con promesas/concurrencia segura
+// 6. Cierre de Periodo Mensual
 app.post('/api/cierre-mes', (req, res) => {
     const { periodo } = req.body;
 
@@ -247,8 +333,8 @@ app.post('/api/cierre-mes', (req, res) => {
 
             const stmt = db.prepare(`
                 INSERT INTO historico_periodos 
-                (periodo, id_afiliado, nombre, nivel, estado, utilidad_propia, comision_propia, comision_por_red, bono_liderazgo, comision_total)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                (periodo, id_afiliado, nombre, apellido, cedula, nivel, estado, utilidad_propia, comision_propia, comision_por_red, bono_liderazgo, comision_total)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             `);
 
             let totalInserts = calculados.length;
@@ -262,13 +348,12 @@ app.post('/api/cierre-mes', (req, res) => {
 
             calculados.forEach(u => {
                 stmt.run([
-                    periodo, u.id, u.nombre, u.nivel, u.estado, 
+                    periodo, u.id, u.nombre, u.apellido || '', u.cedula || '', u.nivel, u.estado, 
                     u.utilidad_propia, u.comision_propia, u.comision_por_red, u.bono_liderazgo, u.comision_total
                 ], (runErr) => {
                     insertsCompletados++;
                     if (runErr) huboError = true;
 
-                    // Una vez que TODOS los inserts asíncronos finalizaron con éxito:
                     if (insertsCompletados === totalInserts) {
                         stmt.finalize();
 
@@ -277,7 +362,6 @@ app.post('/api/cierre-mes', (req, res) => {
                             return res.status(500).json({ error: 'Error guardando registros en el histórico.' });
                         }
 
-                        // Eliminamos transacciones actuales
                         db.run(`DELETE FROM transacciones`, [], (delErr) => {
                             if (delErr) {
                                 db.run("ROLLBACK");
@@ -294,7 +378,7 @@ app.post('/api/cierre-mes', (req, res) => {
     });
 });
 
-// 5. Ver Historial de un periodo cerrado anterior
+// 7. Ver Historial de un periodo cerrado anterior
 app.get('/api/historico/:periodo', (req, res) => {
     db.all(`SELECT * FROM historico_periodos WHERE periodo = ?`, [req.params.periodo], (err, rows) => {
         if (err) return res.status(500).json({ error: err.message });
@@ -302,7 +386,7 @@ app.get('/api/historico/:periodo', (req, res) => {
     });
 });
 
-// 6. Obtener balance global de Rentabilidad
+// 8. Obtener balance global de Rentabilidad
 app.get('/api/rentabilidad', (req, res) => {
     const query = `
         SELECT a.*, COALESCE(SUM(t.monto), 0) as utilidad_propia
@@ -330,7 +414,7 @@ app.get('/api/rentabilidad', (req, res) => {
     });
 });
 
-// 7. Eliminar un afiliado de la red
+// 9. Eliminar un afiliado de la red
 app.delete('/api/afiliados/:id', (req, res) => {
     const { id } = req.params;
 
@@ -349,7 +433,7 @@ app.delete('/api/afiliados/:id', (req, res) => {
     });
 });
 
-// 8. Obtener el historial de transacciones detallado de un afiliado
+// 10. Obtener historial de transacciones detallado de un afiliado
 app.get('/api/transacciones/:id_afiliado', (req, res) => {
     const { id_afiliado } = req.params;
 
@@ -371,7 +455,7 @@ app.get('/api/health', (req, res) => {
     res.status(200).json({ status: 'OK', timestamp: new Date() });
 });
 
-// Cierre limpio de base de datos al apagar el servidor
+// Cierre limpio de la base de datos
 process.on('SIGINT', () => {
     db.close((err) => {
         if (err) console.error(err.message);

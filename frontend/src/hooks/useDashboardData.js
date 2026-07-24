@@ -76,9 +76,21 @@ export function useDashboardData() {
     e.preventDefault();
     setErrorMsg(''); setSuccessMsg('');
     try {
-      await apiService.registrarAfiliado(formData.nombre, formData.id_patrocinador);
-      setSuccessMsg(`Afiliado "${formData.nombre}" registrado con éxito.`);
-      setFormData({ nombre: '', id_patrocinador: '' });
+      // 👈 Pasamos el objeto completo formData (o todos los parámetros) a apiService
+      await apiService.registrarAfiliado(formData);
+      
+      setSuccessMsg(`Afiliado "${formData.nombre} ${formData.apellido}" registrado con éxito.`);
+      
+      // 👈 Reseteamos todos los campos en el formulario
+      setFormData({
+        nombre: '',
+        apellido: '',
+        cedula: '',
+        celular: '',
+        correo: '',
+        id_patrocinador: ''
+      });
+      
       cargarDatos();
     } catch (error) {
       setErrorMsg(error.message);

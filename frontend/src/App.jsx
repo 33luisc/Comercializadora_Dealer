@@ -22,7 +22,14 @@ function App() {
   } = useDashboardData();
 
   // 2. Conservamos aquí los únicos dos estados que controlan formularios e interfaz local en el App
-  const [formData, setFormData] = useState({ nombre: '', id_patrocinador: '' });
+  const [formData, setFormData] = useState({
+  nombre: '',
+  apellido: '',
+  cedula: '',
+  celular: '',
+  correo: '',
+  id_patrocinador: ''
+  });
   const [vistaActiva, setVistaActiva] = useState('tabla'); 
 
   return (
