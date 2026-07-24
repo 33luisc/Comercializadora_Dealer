@@ -1,4 +1,3 @@
-// src/App.jsx
 import { useState } from 'react';
 import { useDashboardData } from './hooks/useDashboardData';
 import NotificationToasts from './components/NotificationToasts';
@@ -21,21 +20,21 @@ function App() {
     cargarDatos, cargarPeriodoHistorico, handleRegisterAfiliado, handleAddTransaccion, handleCierreMes, handleDelete, cargarBitacoraAfiliado
   } = useDashboardData();
 
-  // 2. Conservamos aquí los únicos dos estados que controlan formularios e interfaz local en el App
+  // 2. Conservamos los estados locales de UI
   const [formData, setFormData] = useState({
-  nombre: '',
-  apellido: '',
-  cedula: '',
-  celular: '',
-  correo: '',
-  id_patrocinador: ''
+    nombre: '',
+    apellido: '',
+    cedula: '',
+    celular: '',
+    correo: '',
+    id_patrocinador: ''
   });
   const [vistaActiva, setVistaActiva] = useState('tabla'); 
 
   return (
     <div className="min-h-screen bg-gray-50/50 text-gray-900 antialiased font-sans pb-12">
       
-      {/* COMPONENTE DE NOTIFICACIONES EXTRAÍDO */}
+      {/* NOTIFICACIONES */}
       <NotificationToasts 
         errorMsg={errorMsg} 
         successMsg={successMsg} 
@@ -43,7 +42,7 @@ function App() {
         setSuccessMsg={setSuccessMsg} 
       />
 
-      {/* ENCABEZADO MODERNO CON ESTILOS INLINE FORZADOS */}
+      {/* ENCABEZADO */}
       <Header />
 
       {/* CUERPO PRINCIPAL */}
@@ -56,27 +55,28 @@ function App() {
           onCargarPeriodoHistorico={cargarPeriodoHistorico} onCargarDatos={cargarDatos}
         />
 
-        {/* CONTENEDOR FLEXBOX */}
+        {/* CONTENEDOR FLEXBOX AJUSTADO */}
         <div style={{ 
           display: 'flex', 
           flexWrap: 'wrap', 
-          gap: '24px', 
+          gap: '20px', 
           alignItems: 'flex-start', 
           marginTop: '24px',
           width: '100%'
         }}>
           
-          {/* Columna Izquierda: Formulario */}
+          {/* Columna Izquierda: Formulario (Compacto y con ancho máximo) */}
           <div style={{ 
-            flex: '1 1 320px', 
+            flex: '0 0 280px', // 👈 Ancho fijo compacto de 280px (no crece)
+            maxWidth: '300px',
             backgroundColor: '#ffffff', 
-            padding: '24px', 
-            borderRadius: '20px', 
-            border: '1px solid #f3f4f6', 
+            padding: '20px', 
+            borderRadius: '16px', 
+            border: '1px solid #e2e8f0', 
             boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
             boxSizing: 'border-box'
           }}>
-            <h3 style={{ margin: '0 0 16px 0', fontSize: '15px', fontWeight: '800', color: '#030712', borderBottom: '1px solid #f3f4f6', paddingBottom: '12px' }}>
+            <h3 style={{ margin: '0 0 14px 0', fontSize: '14px', fontWeight: '800', color: '#030712', borderBottom: '1px solid #f1f5f9', paddingBottom: '10px' }}>
               👤 Registrar Miembro
             </h3>
             <RegisterMemberForm 
@@ -87,16 +87,16 @@ function App() {
             />
           </div>
 
-          {/* Columna Derecha: Tabla o Árbol */}
+          {/* Columna Derecha: Tabla o Árbol (Toma el resto del espacio disponible) */}
           <div style={{ 
-            flex: '3 1 600px', 
+            flex: '1 1 65%', // 👈 Se expande para ocupar todo el espacio restante
+            minWidth: '0',   // 👈 Permite que los elementos internos manejen scroll si es necesario sin desbordar el flexbox
             backgroundColor: '#ffffff', 
-            padding: '24px', 
-            borderRadius: '20px', 
-            border: '1px solid #f3f4f6', 
+            padding: '20px', 
+            borderRadius: '16px', 
+            border: '1px solid #e2e8f0', 
             boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
-            boxSizing: 'border-box',
-            overflow: 'hidden'
+            boxSizing: 'border-box'
           }}>
             {vistaActiva === 'tabla' ? (
               <MembersTable 
@@ -115,7 +115,7 @@ function App() {
         </div>
       </main>
 
-      {/* MODALES MANTENIDOS AL FINAL */}
+      {/* MODALES */}
       <TransactionModal 
         modalOpen={modalOpen} selectedAfiliado={selectedAfiliado} transData={transData} setTransData={setTransData}
         onClose={() => { setModalOpen(false); setSelectedAfiliado(null); setTransData({ monto: '', descripcion: '' }); }}

@@ -158,7 +158,7 @@ function RegisterMemberForm({ formData, setFormData, afiliados = [], onRegister 
         </label>
         <input 
           type="number" 
-          placeholder="Ingrese el ID/Código (Dejar vacío si es Líder Raíz)"
+          placeholder="Ingrese el ID (Vacío = Líder Raíz)"
           value={formData.id_patrocinador || ''} 
           onChange={handlePatrocinadorChange} 
           style={inputStyle}
