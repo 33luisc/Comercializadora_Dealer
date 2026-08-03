@@ -1,10 +1,10 @@
 // src/components/Header.jsx
-export default function Header() {
+export default function Header({ adminUser, onLogout, onOpenConfig }) {
   return (
     <header style={{
       backgroundColor: '#ffffff',
       borderBottom: '1px solid #f3f4f6',
-      padding: '24px 0',
+      padding: '20px 0',
       marginBottom: '32px',
       boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.01), 0 2px 4px -1px rgba(0, 0, 0, 0.005)'
     }}>
@@ -70,33 +70,120 @@ export default function Header() {
             </div>
           </div>
 
-          {/* Lado Derecho: Indicador de Estado en Línea */}
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            backgroundColor: '#f9fafb',
-            padding: '8px 14px',
-            borderRadius: '12px',
-            border: '1px solid #f3f4f6'
-          }}>
-            <span style={{
-              height: '8px',
-              width: '8px',
-              borderRadius: '50%',
-              backgroundColor: '#10b981',
-              display: 'inline-block'
-            }}></span>
-            <span style={{
-              fontSize: '11px',
-              fontWeight: '700',
-              color: '#4b5563',
-              textTransform: 'uppercase',
-              letterSpacing: '0.05em',
-              fontFamily: 'sans-serif'
+          {/* Lado Derecho: Controles de Sesión y Configuración */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            
+            {/* Indicador de Estado del Sistema */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              backgroundColor: '#f9fafb',
+              padding: '8px 14px',
+              borderRadius: '12px',
+              border: '1px solid #f3f4f6'
             }}>
-              Sistema Activo
-            </span>
+              <span style={{
+                height: '8px',
+                width: '8px',
+                borderRadius: '50%',
+                backgroundColor: '#10b981',
+                display: 'inline-block'
+              }}></span>
+              <span style={{
+                fontSize: '11px',
+                fontWeight: '700',
+                color: '#4b5563',
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em',
+                fontFamily: 'sans-serif'
+              }}>
+                Sistema Activo
+              </span>
+            </div>
+
+            {/* Si el Administrador inició sesión */}
+            {adminUser ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                
+                {/* Badge con Nombre de Usuario Admin */}
+                <div style={{
+                  backgroundColor: '#eef2ff',
+                  border: '1px solid #c7d2fe',
+                  padding: '6px 12px',
+                  borderRadius: '12px',
+                  fontSize: '12px',
+                  fontWeight: '700',
+                  color: '#3730a3',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}>
+                  <span>👤</span>
+                  <span>{adminUser.nombre || adminUser.usuario}</span>
+                </div>
+
+                {/* Botón de Configuración */}
+                <button
+                  onClick={onOpenConfig}
+                  style={{
+                    backgroundColor: '#4f46e5',
+                    color: '#ffffff',
+                    border: 'none',
+                    padding: '8px 14px',
+                    borderRadius: '12px',
+                    fontSize: '12px',
+                    fontWeight: '700',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+                  }}
+                >
+                  ⚙️ Configuración
+                </button>
+
+                {/* Botón Salir */}
+                <button
+                  onClick={onLogout}
+                  title="Cerrar Sesión"
+                  style={{
+                    backgroundColor: '#fef2f2',
+                    color: '#991b1b',
+                    border: '1px solid #fecaca',
+                    padding: '8px 12px',
+                    borderRadius: '12px',
+                    fontSize: '12px',
+                    fontWeight: '700',
+                    cursor: 'pointer'
+                  }}
+                >
+                  🚪 Salir
+                </button>
+              </div>
+            ) : (
+              /* Botón para Iniciar Sesión de Administrador */
+              <button
+                onClick={onOpenConfig}
+                style={{
+                  backgroundColor: '#ffffff',
+                  color: '#374151',
+                  border: '1px solid #e5e7eb',
+                  padding: '8px 14px',
+                  borderRadius: '12px',
+                  fontSize: '12px',
+                  fontWeight: '700',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}
+              >
+                🔐 Acceso Admin
+              </button>
+            )}
+
           </div>
 
         </div>

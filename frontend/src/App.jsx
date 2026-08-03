@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useDashboardData } from './hooks/useDashboardData';
 import NotificationToasts from './components/NotificationToasts';
 import RegisterMemberForm from './components/RegisterMemberForm';
@@ -8,9 +8,10 @@ import MembersTable from './components/MembersTable';
 import NetworkTree from './components/NetworkTree';
 import DashboardControls from './components/DashboardControls';
 import Header from './components/Header';
+import LoginView from './components/LoginView';
+import AdminConfigPanel from './components/AdminConfigPanel';
 
 function App() {
-  // 1. Extraemos todo el estado y funciones desde nuestro custom hook
   const {
     afiliados, rentabilidad, periodoCierre, setPeriodoCierre,
     errorMsg, setErrorMsg, successMsg, setSuccessMsg,
@@ -20,16 +21,28 @@ function App() {
     cargarDatos, cargarPeriodoHistorico, handleRegisterAfiliado, handleAddTransaccion, handleCierreMes, handleDelete, cargarBitacoraAfiliado
   } = useDashboardData();
 
-  // 2. Conservamos los estados locales de UI
   const [formData, setFormData] = useState({
-    nombre: '',
-    apellido: '',
-    cedula: '',
-    celular: '',
-    correo: '',
-    id_patrocinador: ''
+    nombre: '', apellido: '', cedula: '', celular: '', correo: '', id_patrocinador: ''
   });
-  const [vistaActiva, setVistaActiva] = useState('tabla'); 
+
+  // Estados de vista y autenticación
+  const [vistaActiva, setVistaActiva] = useState('tabla'); // 'tabla' | 'arbol' | 'config' | 'login'
+  const [adminUser, setAdminUser] = useState(null);
+
+  // Verificar sesión persistente al cargar la app
+  useEffect(() => {
+    const savedUser = localStorage.getItem('adminUser');
+    if (savedUser) {
+      setAdminUser(JSON.parse(savedUser));
+    }
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem('adminToken');
+    localStorage.removeItem('adminUser');
+    setAdminUser(null);
+    setVistaActiva('tabla');
+  };
 
   return (
     <div className="min-h-screen bg-gray-50/50 text-gray-900 antialiased font-sans pb-12">
@@ -43,11 +56,16 @@ function App() {
       />
 
       {/* ENCABEZADO */}
-      <Header />
+      <Header 
+        adminUser={adminUser} 
+        onLogout={handleLogout}
+        onOpenConfig={() => setVistaActiva(adminUser ? 'config' : 'login')}
+      />
 
       {/* CUERPO PRINCIPAL */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
+        {/* NAVEGACIÓN Y CONTROLES DEL DASHBOARD */}
         <DashboardControls 
           rentabilidad={rentabilidad} vistaActiva={vistaActiva} setVistaActiva={setVistaActiva}
           verHistorico={verHistorico} setVerHistorico={setVerHistorico} periodoCierre={periodoCierre}
@@ -55,64 +73,87 @@ function App() {
           onCargarPeriodoHistorico={cargarPeriodoHistorico} onCargarDatos={cargarDatos}
         />
 
-        {/* CONTENEDOR FLEXBOX AJUSTADO */}
-        <div style={{ 
-          display: 'flex', 
-          flexWrap: 'wrap', 
-          gap: '20px', 
-          alignItems: 'flex-start', 
-          marginTop: '24px',
-          width: '100%'
-        }}>
-          
-          {/* Columna Izquierda: Formulario (Compacto y con ancho máximo) */}
-          <div style={{ 
-            flex: '0 0 280px', // 👈 Ancho fijo compacto de 280px (no crece)
-            maxWidth: '300px',
-            backgroundColor: '#ffffff', 
-            padding: '20px', 
-            borderRadius: '16px', 
-            border: '1px solid #e2e8f0', 
-            boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
-            boxSizing: 'border-box'
-          }}>
-            <h3 style={{ margin: '0 0 14px 0', fontSize: '14px', fontWeight: '800', color: '#030712', borderBottom: '1px solid #f1f5f9', paddingBottom: '10px' }}>
-              👤 Registrar Miembro
-            </h3>
-            <RegisterMemberForm 
-              formData={formData} 
-              setFormData={setFormData}
-              afiliados={afiliados} 
-              onRegister={(e) => handleRegisterAfiliado(e, formData, setFormData)}
+        {/* VISTA 1: LOGIN (Si quiere acceder a configuración y no está autenticado) */}
+        {vistaActiva === 'login' && (
+          <LoginView 
+            onLoginSuccess={(user) => {
+              setAdminUser(user);
+              setVistaActiva('config');
+            }} 
+          />
+        )}
+
+        {/* VISTA 2: PANEL DE CONFIGURACIÓN DE PARÁMETROS */}
+        {vistaActiva === 'config' && adminUser && (
+          <div className="mt-6">
+            <AdminConfigPanel 
+              onConfigSaved={cargarDatos}
+              setSuccessMsg={setSuccessMsg}
+              setErrorMsg={setErrorMsg}
             />
           </div>
+        )}
 
-          {/* Columna Derecha: Tabla o Árbol (Toma el resto del espacio disponible) */}
+        {/* VISTA 3: VISTA PRINCIPAL (TABLA / ÁRBOL DE RED) */}
+        {(vistaActiva === 'tabla' || vistaActiva === 'arbol') && (
           <div style={{ 
-            flex: '1 1 65%', // 👈 Se expande para ocupar todo el espacio restante
-            minWidth: '0',   // 👈 Permite que los elementos internos manejen scroll si es necesario sin desbordar el flexbox
-            backgroundColor: '#ffffff', 
-            padding: '20px', 
-            borderRadius: '16px', 
-            border: '1px solid #e2e8f0', 
-            boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
-            boxSizing: 'border-box'
+            display: 'flex', 
+            flexWrap: 'wrap', 
+            gap: '20px', 
+            alignItems: 'flex-start', 
+            marginTop: '24px',
+            width: '100%'
           }}>
-            {vistaActiva === 'tabla' ? (
-              <MembersTable 
-                verHistorico={verHistorico} 
-                datosHistoricos={datosHistoricos} 
-                afiliados={afiliados}
-                onOpenBitacora={cargarBitacoraAfiliado} 
-                onDelete={handleDelete}
-                onOpenTransaccion={(a) => { setSelectedAfiliado(a); setModalOpen(true); }}
+            
+            {/* Columna Izquierda: Formulario */}
+            <div style={{ 
+              flex: '0 0 280px',
+              maxWidth: '300px',
+              backgroundColor: '#ffffff', 
+              padding: '20px', 
+              borderRadius: '16px', 
+              border: '1px solid #e2e8f0', 
+              boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+              boxSizing: 'border-box'
+            }}>
+              <h3 style={{ margin: '0 0 14px 0', fontSize: '14px', fontWeight: '800', color: '#030712', borderBottom: '1px solid #f1f5f9', paddingBottom: '10px' }}>
+                👤 Registrar Miembro
+              </h3>
+              <RegisterMemberForm 
+                formData={formData} 
+                setFormData={setFormData}
+                afiliados={afiliados} 
+                onRegister={(e) => handleRegisterAfiliado(e, formData, setFormData)}
               />
-            ) : (
-              <NetworkTree afiliados={afiliados} />
-            )}
-          </div>
+            </div>
 
-        </div>
+            {/* Columna Derecha: Tabla o Árbol */}
+            <div style={{ 
+              flex: '1 1 65%',
+              minWidth: '0',
+              backgroundColor: '#ffffff', 
+              padding: '20px', 
+              borderRadius: '16px', 
+              border: '1px solid #e2e8f0', 
+              boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+              boxSizing: 'border-box'
+            }}>
+              {vistaActiva === 'tabla' ? (
+                <MembersTable 
+                  verHistorico={verHistorico} 
+                  datosHistoricos={datosHistoricos} 
+                  afiliados={afiliados}
+                  onOpenBitacora={cargarBitacoraAfiliado} 
+                  onDelete={handleDelete}
+                  onOpenTransaccion={(a) => { setSelectedAfiliado(a); setModalOpen(true); }}
+                />
+              ) : (
+                <NetworkTree afiliados={afiliados} />
+              )}
+            </div>
+
+          </div>
+        )}
       </main>
 
       {/* MODALES */}

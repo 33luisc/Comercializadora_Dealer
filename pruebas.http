@@ -1,0 +1,44 @@
+### 1. Verificar Salud del Servidor
+GET http://localhost:4000/api/health
+
+### 2. Probar Login Correcto
+POST http://localhost:4000/api/auth/login
+Content-Type: application/json
+
+{
+  "usuario": "admin",
+  "password": "admin123"
+}
+
+### 3. Probar Login Incorrecto (Error intencional 401)
+POST http://localhost:4000/api/auth/login
+Content-Type: application/json
+
+{
+  "usuario": "admin",
+  "password": "clave_incorrecta"
+}
+
+### 4. Consultar Configuración Actual MLM
+GET http://localhost:4000/api/configuracion
+
+### 5. Actualizar Configuración MLM (Modificar umbrales o porcentajes)
+PUT http://localhost:4000/api/configuracion
+Content-Type: application/json
+
+{
+  "general": {
+    "compra_minima_activacion": 60000,
+    "factor_liderazgo": 0.1666666667,
+    "limite_directos_bono": 15
+  },
+  "niveles": [
+    { "nivel": 1, "umbral": 60000, "porcentaje_propio": 0.15, "spread_red": 0.50 },
+    { "nivel": 2, "umbral": 500000, "porcentaje_propio": 0.30, "spread_red": 0.33 },
+    { "nivel": 3, "umbral": 2500000, "porcentaje_propio": 0.50, "spread_red": 0.16 },
+    { "nivel": 4, "umbral": 7000000, "porcentaje_propio": 0.70, "spread_red": 0.00 }
+  ]
+}
+
+### 6. Obtener Afiliados y Verificar los Nuevos Cálculos MLM
+GET http://localhost:4000/api/afiliados
