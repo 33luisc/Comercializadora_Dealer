@@ -105,10 +105,17 @@ function App() {
         
         {/* NAVEGACIÓN Y CONTROLES DEL DASHBOARD */}
         <DashboardControls 
-          rentabilidad={rentabilidad} vistaActiva={vistaActiva} setVistaActiva={setVistaActiva}
-          verHistorico={verHistorico} setVerHistorico={setVerHistorico} periodoCierre={periodoCierre}
-          setPeriodoCierre={setPeriodoCierre} onCierreMes={handleCierreMes}
-          onCargarPeriodoHistorico={cargarPeriodoHistorico} onCargarDatos={cargarDatos}
+          rentabilidad={rentabilidad} 
+          vistaActiva={vistaActiva} 
+          setVistaActiva={setVistaActiva}
+          verHistorico={verHistorico} 
+          setVerHistorico={setVerHistorico} 
+          periodoCierre={periodoCierre}
+          setPeriodoCierre={setPeriodoCierre} 
+          onCierreMes={handleCierreMes}
+          onCargarPeriodoHistorico={cargarPeriodoHistorico} 
+          onCargarDatos={cargarDatos}
+          datosHistoricos={datosHistoricos} /* <--- SE PASAN LOS DATOS PARA LA EXPORTACIÓN */
         />
 
         {/* VISTA 1: PANEL DE CONFIGURACIÓN DE PARÁMETROS */}
@@ -186,14 +193,19 @@ function App() {
 
       {/* MODALES */}
       <TransactionModal 
-        modalOpen={modalOpen} selectedAfiliado={selectedAfiliado} transData={transData} setTransData={setTransData}
+        modalOpen={modalOpen} 
+        selectedAfiliado={selectedAfiliado} 
+        transData={transData} 
+        setTransData={setTransData}
         onClose={() => { setModalOpen(false); setSelectedAfiliado(null); setTransData({ monto: '', descripcion: '' }); }}
         onSubmit={handleAddTransaccion}
       />
 
       <LogModal 
-        verBitacora={verBitacora} afiliadoSeleccionadoBitacora={afiliadoSeleccionadoBitacora}
-        listaTransacciones={listaTransacciones} onClose={() => { setVerBitacora(false); setAfiliadoSeleccionadoBitacora(null); }}
+        verBitacora={verBitacora} 
+        afiliadoSeleccionadoBitacora={afiliadoSeleccionadoBitacora}
+        listaTransacciones={listaTransacciones} 
+        onClose={() => { setVerBitacora(false); setAfiliadoSeleccionadoBitacora(null); }}
       />
     </div>
   );

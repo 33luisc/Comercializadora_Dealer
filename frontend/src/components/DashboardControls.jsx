@@ -1,5 +1,6 @@
 // src/components/DashboardControls.jsx
 import React from 'react';
+import { exportarAExcel, exportarAPDF } from '../utils/exportHelpers';
 
 function DashboardControls({ 
   rentabilidad, 
@@ -11,12 +12,13 @@ function DashboardControls({
   setPeriodoCierre, 
   onCierreMes, 
   onCargarPeriodoHistorico, 
-  onCargarDatos 
+  onCargarDatos,
+  datosHistoricos = [] // <--- RECIBE LOS DATOS CONSULTADOS DEL HISTÓRICO
 }) {
   return (
     <div style={{ width: '100%', fontFamily: 'sans-serif', marginBottom: '16px' }}>
       
-      {/* TARJETAS DE MÉTRICAS - FORZADAS A COLUMNAS HORIZONTALES SIN BORDES NEGROS */}
+      {/* TARJETAS DE MÉTRICAS */}
       <div style={{ 
         display: 'grid', 
         gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', 
@@ -28,7 +30,7 @@ function DashboardControls({
         <div style={{ backgroundColor: '#ffffff', padding: '20px', borderRadius: '16px', border: '1px solid #f3f4f6', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
             <p style={{ margin: 0, fontSize: '10px', color: '#9ca3af', fontWeight: 'bold', textTransform: 'uppercase', tracking: '0.05em' }}>Utilidad Bruta</p>
-            <p style={{ margin: '4px 0 0 0', fontSize: '24px', fontWayne: 'bold', color: '#030712' }}>${Number(rentabilidad.utilidadGlobal || 0).toLocaleString()}</p>
+            <p style={{ margin: '4px 0 0 0', fontSize: '24px', fontWeight: 'bold', color: '#030712' }}>${Number(rentabilidad.utilidadGlobal || 0).toLocaleString()}</p>
           </div>
           <div style={{ padding: '10px', backgroundColor: '#eff6ff', color: '#2563eb', borderRadius: '12px', display: 'flex' }}>
             <svg style={{ width: '20px', height: '20px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
@@ -39,7 +41,7 @@ function DashboardControls({
         <div style={{ backgroundColor: '#ffffff', padding: '20px', borderRadius: '16px', border: '1px solid #f3f4f6', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
             <p style={{ margin: 0, fontSize: '10px', color: '#9ca3af', fontWeight: 'bold', textTransform: 'uppercase', tracking: '0.05em' }}>Comisiones</p>
-            <p style={{ margin: '4px 0 0 0', fontSize: '24px', fontWayne: 'bold', color: '#dc2626' }}>${Number(rentabilidad.comisionesPagadas || 0).toLocaleString()}</p>
+            <p style={{ margin: '4px 0 0 0', fontSize: '24px', fontWeight: 'bold', color: '#dc2626' }}>${Number(rentabilidad.comisionesPagadas || 0).toLocaleString()}</p>
           </div>
           <div style={{ padding: '10px', backgroundColor: '#fef2f2', color: '#dc2626', borderRadius: '12px', display: 'flex' }}>
             <svg style={{ width: '20px', height: '20px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
@@ -50,7 +52,7 @@ function DashboardControls({
         <div style={{ backgroundColor: '#ffffff', padding: '20px', borderRadius: '16px', border: '1px solid #f3f4f6', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
             <p style={{ margin: 0, fontSize: '10px', color: '#9ca3af', fontWeight: 'bold', textTransform: 'uppercase', tracking: '0.05em' }}>Margen Neto</p>
-            <p style={{ margin: '4px 0 0 0', fontSize: '24px', fontWayne: 'bold', color: '#16a34a' }}>${Number(rentabilidad.margenLibre || 0).toLocaleString()}</p>
+            <p style={{ margin: '4px 0 0 0', fontSize: '24px', fontWeight: 'bold', color: '#16a34a' }}>${Number(rentabilidad.margenLibre || 0).toLocaleString()}</p>
           </div>
           <div style={{ padding: '10px', backgroundColor: '#f0fdf4', color: '#16a34a', borderRadius: '12px', display: 'flex' }}>
             <svg style={{ width: '20px', height: '20px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
@@ -61,7 +63,7 @@ function DashboardControls({
         <div style={{ backgroundColor: '#ffffff', padding: '20px', borderRadius: '16px', border: '1px solid #f3f4f6', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
             <p style={{ margin: 0, fontSize: '10px', color: '#9ca3af', fontWeight: 'bold', textTransform: 'uppercase', tracking: '0.05em' }}>Payout Red</p>
-            <p style={{ margin: '4px 0 0 0', fontSize: '24px', fontWayne: 'bold', color: '#9333ea' }}>{rentabilidad.porcentajeRepartido || 0}%</p>
+            <p style={{ margin: '4px 0 0 0', fontSize: '24px', fontWeight: 'bold', color: '#9333ea' }}>{rentabilidad.porcentajeRepartido || 0}%</p>
           </div>
           <div style={{ padding: '10px', backgroundColor: '#faf5ff', color: '#9333ea', borderRadius: '12px', display: 'flex' }}>
             <svg style={{ width: '20px', height: '20px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z"/></svg>
@@ -73,7 +75,7 @@ function DashboardControls({
       {/* ACCIONES Y PERIODO CONTABLE */}
       <div style={{ 
         display: 'flex', 
-        justifyContent: 'space-between', 
+        justify: 'space-between', 
         alignItems: 'center', 
         flexWrap: 'wrap', 
         gap: '12px', 
@@ -136,16 +138,40 @@ function DashboardControls({
           )}
         </div>
 
-        {/* Botón de Cierre */}
-        {!verHistorico && (
-          <button 
-            type="button"
-            onClick={onCierreMes}
-            style={{ backgroundColor: '#dc2626', border: 'none', color: '#ffffff', fontSize: '12px', fontWeight: 'bold', padding: '8px 16px', borderRadius: '12px', cursor: 'pointer', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}
-          >
-            🔒 Ejecutar Cierre de Mes
-          </button>
-        )}
+        {/* ÁREA DE ACCIONES SECUNDARIAS (Cierre de mes vs Exportaciones) */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          {/* BOTONES DE EXPORTACIÓN: Visibles únicamente en la vista de Historial */}
+          {verHistorico && (
+            <>
+              <button 
+                type="button"
+                onClick={() => exportarAExcel(datosHistoricos, periodoCierre)}
+                style={{ backgroundColor: '#16a34a', border: 'none', color: '#ffffff', fontSize: '12px', fontWeight: 'bold', padding: '8px 14px', borderRadius: '12px', cursor: 'pointer', boxShadow: '0 1px 2px rgba(0,0,0,0.05)', display: 'flex', alignItems: 'center', gap: '4px' }}
+              >
+                📊 Excel
+              </button>
+
+              <button 
+                type="button"
+                onClick={() => exportarAPDF(datosHistoricos, periodoCierre)}
+                style={{ backgroundColor: '#dc2626', border: 'none', color: '#ffffff', fontSize: '12px', fontWeight: 'bold', padding: '8px 14px', borderRadius: '12px', cursor: 'pointer', boxShadow: '0 1px 2px rgba(0,0,0,0.05)', display: 'flex', alignItems: 'center', gap: '4px' }}
+              >
+                📄 PDF
+              </button>
+            </>
+          )}
+
+          {/* Botón de Cierre: Oculto si se está viendo el historial */}
+          {!verHistorico && (
+            <button 
+              type="button"
+              onClick={onCierreMes}
+              style={{ backgroundColor: '#dc2626', border: 'none', color: '#ffffff', fontSize: '12px', fontWeight: 'bold', padding: '8px 16px', borderRadius: '12px', cursor: 'pointer', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}
+            >
+              🔒 Ejecutar Cierre de Mes
+            </button>
+          )}
+        </div>
 
       </div>
     </div>
