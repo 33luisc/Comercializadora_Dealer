@@ -26,15 +26,23 @@ function App() {
   });
 
   // Estados de vista y autenticación
-  const [vistaActiva, setVistaActiva] = useState('tabla'); // 'tabla' | 'arbol' | 'config' | 'login'
+  const [vistaActiva, setVistaActiva] = useState('tabla'); // 'tabla' | 'arbol' | 'config'
   const [adminUser, setAdminUser] = useState(null);
+  const [cargandoSesion, setCargandoSesion] = useState(true);
 
   // Verificar sesión persistente al cargar la app
   useEffect(() => {
     const savedUser = localStorage.getItem('adminUser');
-    if (savedUser) {
-      setAdminUser(JSON.parse(savedUser));
+    const token = localStorage.getItem('adminToken');
+    if (savedUser && token) {
+      try {
+        setAdminUser(JSON.parse(savedUser));
+      } catch (e) {
+        localStorage.removeItem('adminToken');
+        localStorage.removeItem('adminUser');
+      }
     }
+    setCargandoSesion(false);
   }, []);
 
   const handleLogout = () => {
@@ -44,6 +52,36 @@ function App() {
     setVistaActiva('tabla');
   };
 
+  // 1. PANTALLA DE CARGA DE SESIÓN
+  if (cargandoSesion) {
+    return (
+      <div style={{ padding: '40px', textAlign: 'center', fontFamily: 'sans-serif', color: '#6b7280' }}>
+        ⏳ Cargando aplicación...
+      </div>
+    );
+  }
+
+  // 2. BLOQUEO DE SEGURIDAD: Si no hay usuario autenticado, renderizar ÚNICAMENTE el Login
+  if (!adminUser) {
+    return (
+      <div className="min-h-screen bg-gray-50/50 flex flex-col justify-center items-center font-sans">
+        <NotificationToasts 
+          errorMsg={errorMsg} 
+          successMsg={successMsg} 
+          setErrorMsg={setErrorMsg} 
+          setSuccessMsg={setSuccessMsg} 
+        />
+        <LoginView 
+          onLoginSuccess={(user) => {
+            setAdminUser(user);
+            setVistaActiva('tabla');
+          }} 
+        />
+      </div>
+    );
+  }
+
+  // 3. APLICACIÓN PRINCIPAL (Solo accesible si adminUser es válido)
   return (
     <div className="min-h-screen bg-gray-50/50 text-gray-900 antialiased font-sans pb-12">
       
@@ -59,7 +97,7 @@ function App() {
       <Header 
         adminUser={adminUser} 
         onLogout={handleLogout}
-        onOpenConfig={() => setVistaActiva(adminUser ? 'config' : 'login')}
+        onOpenConfig={() => setVistaActiva('config')}
       />
 
       {/* CUERPO PRINCIPAL */}
@@ -73,18 +111,8 @@ function App() {
           onCargarPeriodoHistorico={cargarPeriodoHistorico} onCargarDatos={cargarDatos}
         />
 
-        {/* VISTA 1: LOGIN (Si quiere acceder a configuración y no está autenticado) */}
-        {vistaActiva === 'login' && (
-          <LoginView 
-            onLoginSuccess={(user) => {
-              setAdminUser(user);
-              setVistaActiva('config');
-            }} 
-          />
-        )}
-
-        {/* VISTA 2: PANEL DE CONFIGURACIÓN DE PARÁMETROS */}
-        {vistaActiva === 'config' && adminUser && (
+        {/* VISTA 1: PANEL DE CONFIGURACIÓN DE PARÁMETROS */}
+        {vistaActiva === 'config' && (
           <div className="mt-6">
             <AdminConfigPanel 
               onConfigSaved={cargarDatos}
@@ -94,7 +122,7 @@ function App() {
           </div>
         )}
 
-        {/* VISTA 3: VISTA PRINCIPAL (TABLA / ÁRBOL DE RED) */}
+        {/* VISTA 2: VISTA PRINCIPAL (TABLA / ÁRBOL DE RED) */}
         {(vistaActiva === 'tabla' || vistaActiva === 'arbol') && (
           <div style={{ 
             display: 'flex', 
