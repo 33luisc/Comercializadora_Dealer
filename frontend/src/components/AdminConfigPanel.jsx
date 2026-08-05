@@ -1,5 +1,109 @@
 import { useState, useEffect } from 'react';
 
+// Formateador oficial de moneda para Colombia
+const formatearCOP = (valor) => {
+  const num = parseFloat(valor);
+  if (isNaN(num)) return '';
+  return new Intl.NumberFormat('es-CO', {
+    style: 'currency',
+    currency: 'COP',
+    maximumFractionDigits: 0
+  }).format(num);
+};
+
+// Auxiliar para convertir un número decimal a representación en string de fracción (ej: 0.1666666667 -> "1/6")
+const decimalAFraccion = (val) => {
+  const num = parseFloat(val);
+  if (isNaN(num) || num === 0) return '0';
+  if (num === 1) return '1';
+  
+  if (Math.abs(num - 1/6) < 0.001) return '1/6';
+  if (Math.abs(num - 2/6) < 0.001) return '2/6';
+  if (Math.abs(num - 3/6) < 0.001) return '3/6';
+  if (Math.abs(num - 4/6) < 0.001) return '4/6';
+  if (Math.abs(num - 5/6) < 0.001) return '5/6';
+
+  return num.toString();
+};
+
+// Componente para ingresar dinero en formato COP
+function COPInput({ value, onChange, style }) {
+  const [displayValue, setDisplayValue] = useState(formatearCOP(value));
+
+  useEffect(() => {
+    setDisplayValue(formatearCOP(value));
+  }, [value]);
+
+  const handleChange = (e) => {
+    // Elimina caracteres no numéricos para obtener solo los dígitos
+    const rawValue = e.target.value.replace(/\D/g, '');
+    const numericValue = parseFloat(rawValue) || 0;
+    
+    // Notifica al padre el valor numérico puro
+    onChange(numericValue);
+    setDisplayValue(rawValue ? formatearCOP(numericValue) : '');
+  };
+
+  return (
+    <input
+      type="text"
+      value={displayValue}
+      onChange={handleChange}
+      placeholder="$ 0"
+      style={style}
+    />
+  );
+}
+
+// Componente para ingresar fracciones libres
+function FractionInput({ value, onChange, style }) {
+  const [text, setText] = useState(decimalAFraccion(value));
+
+  useEffect(() => {
+    setText(decimalAFraccion(value));
+  }, [value]);
+
+  const handleBlurOrChange = (inputVal) => {
+    setText(inputVal);
+    
+    if (inputVal.includes('/')) {
+      const parts = inputVal.split('/');
+      const num = parseFloat(parts[0]);
+      const den = parseFloat(parts[1]);
+      if (!isNaN(num) && !isNaN(den) && den !== 0) {
+        onChange(num / den);
+        return;
+      }
+    }
+
+    const parsed = parseFloat(inputVal);
+    if (!isNaN(parsed)) {
+      onChange(parsed);
+    } else {
+      onChange(0);
+    }
+  };
+
+  const valorDecimal = parseFloat(value) || 0;
+  const porcentaje = (valorDecimal * 100).toFixed(1);
+
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+      <input
+        type="text"
+        placeholder="ej. 1/6"
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        onBlur={(e) => handleBlurOrChange(e.target.value)}
+        style={{ ...style, textAlign: 'center' }}
+      />
+      <span style={{ fontSize: '11px', fontWeight: '700', color: '#10b981', minWidth: '45px' }}>
+        ({porcentaje}%)
+      </span>
+    </div>
+  );
+}
+
 export default function AdminConfigPanel({ onConfigSaved, setSuccessMsg, setErrorMsg }) {
   const [loading, setLoading] = useState(true);
   const [guardando, setGuardando] = useState(false);
@@ -10,7 +114,6 @@ export default function AdminConfigPanel({ onConfigSaved, setSuccessMsg, setErro
   });
   const [niveles, setNiveles] = useState([]);
 
-  // Cargar la configuración desde el backend
   const cargarConfiguracion = async () => {
     try {
       setLoading(true);
@@ -30,19 +133,16 @@ export default function AdminConfigPanel({ onConfigSaved, setSuccessMsg, setErro
     cargarConfiguracion();
   }, []);
 
-  // Manejar cambios en campos generales
   const handleGeneralChange = (field, value) => {
     setGeneral((prev) => ({ ...prev, [field]: parseFloat(value) || 0 }));
   };
 
-  // Manejar cambios en la matriz de niveles
   const handleNivelChange = (index, field, value) => {
     const nuevosNiveles = [...niveles];
     nuevosNiveles[index][field] = parseFloat(value) || 0;
     setNiveles(nuevosNiveles);
   };
 
-  // Guardar configuración modificada
   const handleSubmit = async (e) => {
     e.preventDefault();
     setGuardando(true);
@@ -105,13 +205,12 @@ export default function AdminConfigPanel({ onConfigSaved, setSuccessMsg, setErro
       fontFamily: 'sans-serif',
       marginBottom: '32px'
     }}>
-      {/* Encabezado */}
       <div style={{ borderBottom: '1px solid #f3f4f6', paddingBottom: '16px', marginBottom: '24px' }}>
         <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '800', color: '#111827', display: 'flex', alignItems: 'center', gap: '8px' }}>
           ⚙️ Control de Parámetros MLM
         </h3>
         <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: '#6b7280' }}>
-          Ajusta los umbrales de calificación, compra mínima y comisiones escalonadas del sistema.
+          Ajusta los umbrales de calificación en COP y comisiones expresadas en fracciones de sextos.
         </p>
       </div>
 
@@ -125,26 +224,23 @@ export default function AdminConfigPanel({ onConfigSaved, setSuccessMsg, setErro
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px' }}>
             
             <div style={{ backgroundColor: '#f9fafb', padding: '16px', borderRadius: '14px', border: '1px solid #f3f4f6' }}>
-              <label style={labelStyle}>Compra Mínima para Activación ($)</label>
-              <input
-                type="number"
+              <label style={labelStyle}>Compra Mínima de Activación (COP)</label>
+              <COPInput
                 value={general.compra_minima_activacion}
-                onChange={(e) => handleGeneralChange('compra_minima_activacion', e.target.value)}
+                onChange={(val) => handleGeneralChange('compra_minima_activacion', val)}
                 style={inputStyle}
               />
             </div>
 
             <div style={{ backgroundColor: '#f9fafb', padding: '16px', borderRadius: '14px', border: '1px solid #f3f4f6' }}>
-              <label style={labelStyle}>Factor Bono de Liderazgo (Decimal)</label>
-              <input
-                type="number"
-                step="0.0000000001"
+              <label style={labelStyle}>Factor Bono de Liderazgo (Fracción)</label>
+              <FractionInput
                 value={general.factor_liderazgo}
-                onChange={(e) => handleGeneralChange('factor_liderazgo', e.target.value)}
+                onChange={(val) => handleGeneralChange('factor_liderazgo', val)}
                 style={inputStyle}
               />
               <span style={{ fontSize: '11px', color: '#4f46e5', fontWeight: '600', marginTop: '6px', display: 'block' }}>
-                💡 Equivalente a {(general.factor_liderazgo * 100).toFixed(2)}% de bonificación
+                💡 Escribe en formato fracción (ej. 1/6)
               </span>
             </div>
 
@@ -172,9 +268,9 @@ export default function AdminConfigPanel({ onConfigSaved, setSuccessMsg, setErro
               <thead>
                 <tr style={{ backgroundColor: '#f9fafb', borderBottom: '1px solid #e5e7eb', color: '#4b5563', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                   <th style={{ padding: '12px 16px', fontWeight: '700' }}>Nivel</th>
-                  <th style={{ padding: '12px 16px', fontWeight: '700' }}>Umbral de Calificación ($)</th>
-                  <th style={{ padding: '12px 16px', fontWeight: '700' }}>% Comisión Propia</th>
-                  <th style={{ padding: '12px 16px', fontWeight: '700' }}>% Spread por Red</th>
+                  <th style={{ padding: '12px 16px', fontWeight: '700' }}>Umbral de Calificación (COP)</th>
+                  <th style={{ padding: '12px 16px', fontWeight: '700' }}>Comisión Propia (Fracción)</th>
+                  <th style={{ padding: '12px 16px', fontWeight: '700' }}>Spread por Red (Fracción)</th>
                 </tr>
               </thead>
               <tbody>
@@ -186,40 +282,25 @@ export default function AdminConfigPanel({ onConfigSaved, setSuccessMsg, setErro
                       </span>
                     </td>
                     <td style={{ padding: '12px 16px' }}>
-                      <input
-                        type="number"
+                      <COPInput
                         value={n.umbral}
-                        onChange={(e) => handleNivelChange(idx, 'umbral', e.target.value)}
-                        style={{ ...inputStyle, width: '160px' }}
+                        onChange={(val) => handleNivelChange(idx, 'umbral', val)}
+                        style={{ ...inputStyle, width: '180px' }}
                       />
                     </td>
                     <td style={{ padding: '12px 16px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <input
-                          type="number"
-                          step="0.0000000001"
-                          value={n.porcentaje_propio}
-                          onChange={(e) => handleNivelChange(idx, 'porcentaje_propio', e.target.value)}
-                          style={{ ...inputStyle, width: '120px' }}
-                        />
-                        <span style={{ fontSize: '12px', fontWeight: '700', color: '#10b981' }}>
-                          ({(n.porcentaje_propio * 100).toFixed(1)}%)
-                        </span>
-                      </div>
+                      <FractionInput
+                        value={n.porcentaje_propio}
+                        onChange={(val) => handleNivelChange(idx, 'porcentaje_propio', val)}
+                        style={{ ...inputStyle, width: '110px' }}
+                      />
                     </td>
                     <td style={{ padding: '12px 16px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <input
-                          type="number"
-                          step="0.0000000001"
-                          value={n.spread_red}
-                          onChange={(e) => handleNivelChange(idx, 'spread_red', e.target.value)}
-                          style={{ ...inputStyle, width: '120px' }}
-                        />
-                        <span style={{ fontSize: '12px', fontWeight: '700', color: '#6b7280' }}>
-                          ({(n.spread_red * 100).toFixed(1)}%)
-                        </span>
-                      </div>
+                      <FractionInput
+                        value={n.spread_red}
+                        onChange={(val) => handleNivelChange(idx, 'spread_red', val)}
+                        style={{ ...inputStyle, width: '110px' }}
+                      />
                     </td>
                   </tr>
                 ))}
@@ -228,7 +309,6 @@ export default function AdminConfigPanel({ onConfigSaved, setSuccessMsg, setErro
           </div>
         </div>
 
-        {/* BOTÓN DE GUARDAR */}
         <div style={{ display: 'flex', justifyContent: 'flex-end', paddingTop: '16px', borderTop: '1px solid #f3f4f6' }}>
           <button
             type="submit"
