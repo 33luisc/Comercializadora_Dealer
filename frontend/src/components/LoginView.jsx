@@ -24,7 +24,6 @@ export default function LoginView({ onLoginSuccess }) {
         throw new Error(data.error || 'Error al iniciar sesión');
       }
 
-      // Guardar token y usuario en localStorage
       localStorage.setItem('adminToken', data.token);
       localStorage.setItem('adminUser', JSON.stringify(data.usuario));
       
@@ -36,44 +35,112 @@ export default function LoginView({ onLoginSuccess }) {
     }
   };
 
+  const inputStyle = {
+    width: '100%',
+    padding: '12px 14px',
+    fontSize: '14px',
+    borderRadius: '12px',
+    border: '1px solid #e5e7eb',
+    backgroundColor: '#ffffff',
+    outline: 'none',
+    boxSizing: 'border-box',
+    fontFamily: 'sans-serif',
+    transition: 'border-color 0.2s ease, box-shadow 0.2s ease'
+  };
+
+  const labelStyle = {
+    display: 'block',
+    fontSize: '12px',
+    fontWeight: '700',
+    color: '#374151',
+    marginBottom: '6px',
+    fontFamily: 'sans-serif'
+  };
+
   return (
-    <div className="flex items-center justify-center min-h-[70vh] px-4">
-      <div className="w-full max-w-md bg-white border border-slate-200 rounded-2xl shadow-sm p-8">
-        <div className="text-center mb-6">
-          <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center mx-auto mb-3 font-bold text-xl">
+    <div style={{
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      minHeight: '65vh',
+      padding: '24px 16px',
+      fontFamily: 'sans-serif'
+    }}>
+      <div style={{
+        width: '100%',
+        maxWidth: '420px',
+        backgroundColor: '#ffffff',
+        borderRadius: '20px',
+        border: '1px solid #f3f4f6',
+        padding: '36px 32px',
+        boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)'
+      }}>
+        {/* Encabezado */}
+        <div style={{ textAlign: 'center', marginBottom: '28px' }}>
+          <div style={{
+            width: '48px',
+            height: '48px',
+            backgroundColor: '#eef2ff',
+            color: '#4f46e5',
+            borderRadius: '14px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            margin: '0 auto 16px auto',
+            fontSize: '22px'
+          }}>
             🔐
           </div>
-          <h2 className="text-xl font-bold text-slate-900">Acceso Administrativo</h2>
-          <p className="text-xs text-slate-500 mt-1">Ingresa tus credenciales para gestionar la configuración MLM</p>
+          <h2 style={{ margin: 0, fontSize: '20px', fontWeight: '800', color: '#111827' }}>
+            Acceso Administrativo
+          </h2>
+          <p style={{ margin: '6px 0 0 0', fontSize: '13px', color: '#6b7280', lineHeight: '1.4' }}>
+            Ingresa tus credenciales para gestionar la configuración MLM
+          </p>
         </div>
 
+        {/* Alerta de Error */}
         {error && (
-          <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl flex items-center gap-2">
-            ⚠️ {error}
+          <div style={{
+            marginBottom: '20px',
+            padding: '12px 14px',
+            backgroundColor: '#fef2f2',
+            border: '1px solid #fecaca',
+            color: '#dc2626',
+            fontSize: '13px',
+            borderRadius: '12px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            fontWeight: '500'
+          }}>
+            <span>⚠️</span>
+            <span>{error}</span>
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        {/* Formulario */}
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1">Usuario</label>
+            <label style={labelStyle}>Usuario</label>
             <input
               type="text"
               required
               value={usuario}
               onChange={(e) => setUsuario(e.target.value)}
-              className="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+              style={inputStyle}
               placeholder="Ej: admin"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1">Contraseña</label>
+            <label style={labelStyle}>Contraseña</label>
             <input
               type="password"
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+              style={inputStyle}
               placeholder="••••••••"
             />
           </div>
@@ -81,7 +148,20 @@ export default function LoginView({ onLoginSuccess }) {
           <button
             type="submit"
             disabled={cargando}
-            className="w-full py-2.5 px-4 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl text-sm transition-all shadow-sm disabled:opacity-50"
+            style={{
+              width: '100%',
+              backgroundColor: cargando ? '#a5b4fc' : '#4f46e5',
+              color: '#ffffff',
+              padding: '12px 16px',
+              borderRadius: '12px',
+              border: 'none',
+              fontSize: '14px',
+              fontWeight: '700',
+              cursor: cargando ? 'not-allowed' : 'pointer',
+              boxShadow: '0 2px 6px rgba(79, 70, 229, 0.25)',
+              transition: 'all 0.2s ease',
+              marginTop: '4px'
+            }}
           >
             {cargando ? 'Verificando...' : 'Iniciar Sesión'}
           </button>
