@@ -68,124 +68,158 @@ export default function AdminConfigPanel({ onConfigSaved, setSuccessMsg, setErro
 
   if (loading) {
     return (
-      <div className="p-8 text-center text-sm text-slate-500">
+      <div style={{ padding: '32px', textAlign: 'center', color: '#6b7280', fontFamily: 'sans-serif', fontSize: '14px' }}>
         ⏳ Cargando parámetros del sistema...
       </div>
     );
   }
 
+  const inputStyle = {
+    width: '100%',
+    padding: '10px 12px',
+    fontSize: '13px',
+    borderRadius: '10px',
+    border: '1px solid #e5e7eb',
+    backgroundColor: '#ffffff',
+    outline: 'none',
+    boxSizing: 'border-box',
+    fontFamily: 'sans-serif'
+  };
+
+  const labelStyle = {
+    display: 'block',
+    fontSize: '12px',
+    fontWeight: '700',
+    color: '#374151',
+    marginBottom: '6px',
+    fontFamily: 'sans-serif'
+  };
+
   return (
-    <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
-      <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-6">
-        <div>
-          <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-            ⚙️ Control de Parámetros MLM
-          </h3>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Ajusta los umbrales de calificación, compra mínima y comisiones escalonadas.
-          </p>
-        </div>
+    <div style={{
+      backgroundColor: '#ffffff',
+      borderRadius: '20px',
+      border: '1px solid #f3f4f6',
+      padding: '28px',
+      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.03)',
+      fontFamily: 'sans-serif',
+      marginBottom: '32px'
+    }}>
+      {/* Encabezado */}
+      <div style={{ borderBottom: '1px solid #f3f4f6', paddingBottom: '16px', marginBottom: '24px' }}>
+        <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '800', color: '#111827', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          ⚙️ Control de Parámetros MLM
+        </h3>
+        <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: '#6b7280' }}>
+          Ajusta los umbrales de calificación, compra mínima y comisiones escalonadas del sistema.
+        </p>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit}>
         {/* REGLAS GENERALES */}
-        <div>
-          <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-3">
+        <div style={{ marginBottom: '28px' }}>
+          <h4 style={{ fontSize: '12px', fontWeight: '800', color: '#4f46e5', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '16px' }}>
             1. Reglas Generales de Calificación
           </h4>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200/60">
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Compra Mínima para Activación ($)
-              </label>
+          
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px' }}>
+            
+            <div style={{ backgroundColor: '#f9fafb', padding: '16px', borderRadius: '14px', border: '1px solid #f3f4f6' }}>
+              <label style={labelStyle}>Compra Mínima para Activación ($)</label>
               <input
                 type="number"
                 value={general.compra_minima_activacion}
                 onChange={(e) => handleGeneralChange('compra_minima_activacion', e.target.value)}
-                className="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg bg-white"
+                style={inputStyle}
               />
             </div>
 
-            <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200/60">
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Factor Bono de Liderazgo (Decimal)
-              </label>
+            <div style={{ backgroundColor: '#f9fafb', padding: '16px', borderRadius: '14px', border: '1px solid #f3f4f6' }}>
+              <label style={labelStyle}>Factor Bono de Liderazgo (Decimal)</label>
               <input
                 type="number"
                 step="0.0000000001"
                 value={general.factor_liderazgo}
                 onChange={(e) => handleGeneralChange('factor_liderazgo', e.target.value)}
-                className="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg bg-white"
+                style={inputStyle}
               />
-              <span className="text-[10px] text-slate-400 mt-0.5 block">
-                {(general.factor_liderazgo * 100).toFixed(2)}% de bonificación
+              <span style={{ fontSize: '11px', color: '#4f46e5', fontWeight: '600', marginTop: '6px', display: 'block' }}>
+                💡 Equivalente a {(general.factor_liderazgo * 100).toFixed(2)}% de bonificación
               </span>
             </div>
 
-            <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200/60">
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Límite de Directos por Patrocinador
-              </label>
+            <div style={{ backgroundColor: '#f9fafb', padding: '16px', borderRadius: '14px', border: '1px solid #f3f4f6' }}>
+              <label style={labelStyle}>Límite de Directos por Patrocinador</label>
               <input
                 type="number"
                 value={general.limite_directos_bono}
                 onChange={(e) => handleGeneralChange('limite_directos_bono', e.target.value)}
-                className="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg bg-white"
+                style={inputStyle}
               />
             </div>
+
           </div>
         </div>
 
         {/* MATRIZ DE NIVELES */}
-        <div>
-          <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-3">
+        <div style={{ marginBottom: '28px' }}>
+          <h4 style={{ fontSize: '12px', fontWeight: '800', color: '#4f46e5', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '16px' }}>
             2. Matriz Escalonada de Niveles
           </h4>
-          <div className="overflow-x-auto border border-slate-200 rounded-xl">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 border-b border-slate-200 font-semibold text-slate-700">
-                <tr>
-                  <th className="p-3">Nivel</th>
-                  <th className="p-3">Umbral de Calificación ($)</th>
-                  <th className="p-3">% Comisión Propia</th>
-                  <th className="p-3">% Spread por Red</th>
+
+          <div style={{ overflowX: 'auto', borderRadius: '14px', border: '1px solid #f3f4f6' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
+              <thead>
+                <tr style={{ backgroundColor: '#f9fafb', borderBottom: '1px solid #e5e7eb', color: '#4b5563', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  <th style={{ padding: '12px 16px', fontWeight: '700' }}>Nivel</th>
+                  <th style={{ padding: '12px 16px', fontWeight: '700' }}>Umbral de Calificación ($)</th>
+                  <th style={{ padding: '12px 16px', fontWeight: '700' }}>% Comisión Propia</th>
+                  <th style={{ padding: '12px 16px', fontWeight: '700' }}>% Spread por Red</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody>
                 {niveles.map((n, idx) => (
-                  <tr key={n.nivel} className="hover:bg-slate-50/50">
-                    <td className="p-3 font-bold text-slate-900">Nivel {n.nivel}</td>
-                    <td className="p-3">
+                  <tr key={n.nivel} style={{ borderBottom: idx < niveles.length - 1 ? '1px solid #f3f4f6' : 'none' }}>
+                    <td style={{ padding: '12px 16px', fontWeight: '800', color: '#111827' }}>
+                      <span style={{ backgroundColor: '#eef2ff', color: '#4f46e5', padding: '4px 10px', borderRadius: '8px', fontSize: '12px' }}>
+                        Nivel {n.nivel}
+                      </span>
+                    </td>
+                    <td style={{ padding: '12px 16px' }}>
                       <input
                         type="number"
                         value={n.umbral}
                         onChange={(e) => handleNivelChange(idx, 'umbral', e.target.value)}
-                        className="w-full max-w-[140px] px-2 py-1 border border-slate-200 rounded-lg bg-white"
+                        style={{ ...inputStyle, width: '160px' }}
                       />
                     </td>
-                    <td className="p-3">
-                      <input
-                        type="number"
-                        step="0.0000000001"
-                        value={n.porcentaje_propio}
-                        onChange={(e) => handleNivelChange(idx, 'porcentaje_propio', e.target.value)}
-                        className="w-full max-w-[120px] px-2 py-1 border border-slate-200 rounded-lg bg-white"
-                      />
-                      <span className="ml-2 text-slate-400">
-                        ({(n.porcentaje_propio * 100).toFixed(1)}%)
-                      </span>
+                    <td style={{ padding: '12px 16px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <input
+                          type="number"
+                          step="0.0000000001"
+                          value={n.porcentaje_propio}
+                          onChange={(e) => handleNivelChange(idx, 'porcentaje_propio', e.target.value)}
+                          style={{ ...inputStyle, width: '120px' }}
+                        />
+                        <span style={{ fontSize: '12px', fontWeight: '700', color: '#10b981' }}>
+                          ({(n.porcentaje_propio * 100).toFixed(1)}%)
+                        </span>
+                      </div>
                     </td>
-                    <td className="p-3">
-                      <input
-                        type="number"
-                        step="0.0000000001"
-                        value={n.spread_red}
-                        onChange={(e) => handleNivelChange(idx, 'spread_red', e.target.value)}
-                        className="w-full max-w-[120px] px-2 py-1 border border-slate-200 rounded-lg bg-white"
-                      />
-                      <span className="ml-2 text-slate-400">
-                        ({(n.spread_red * 100).toFixed(1)}%)
-                      </span>
+                    <td style={{ padding: '12px 16px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <input
+                          type="number"
+                          step="0.0000000001"
+                          value={n.spread_red}
+                          onChange={(e) => handleNivelChange(idx, 'spread_red', e.target.value)}
+                          style={{ ...inputStyle, width: '120px' }}
+                        />
+                        <span style={{ fontSize: '12px', fontWeight: '700', color: '#6b7280' }}>
+                          ({(n.spread_red * 100).toFixed(1)}%)
+                        </span>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -195,11 +229,22 @@ export default function AdminConfigPanel({ onConfigSaved, setSuccessMsg, setErro
         </div>
 
         {/* BOTÓN DE GUARDAR */}
-        <div className="flex justify-end pt-2 border-t border-slate-100">
+        <div style={{ display: 'flex', justifyContent: 'flex-end', paddingTop: '16px', borderTop: '1px solid #f3f4f6' }}>
           <button
             type="submit"
             disabled={guardando}
-            className="py-2 px-6 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-xl shadow-sm transition-all disabled:opacity-50"
+            style={{
+              backgroundColor: guardando ? '#a5b4fc' : '#4f46e5',
+              color: '#ffffff',
+              padding: '10px 24px',
+              borderRadius: '12px',
+              border: 'none',
+              fontSize: '13px',
+              fontWeight: '700',
+              cursor: guardando ? 'not-allowed' : 'pointer',
+              boxShadow: '0 2px 4px rgba(79, 70, 229, 0.2)',
+              transition: 'all 0.2s ease'
+            }}
           >
             {guardando ? 'Guardando Cambios...' : '💾 Guardar Parámetros'}
           </button>
