@@ -27,6 +27,7 @@ function procesarCalculosMLMDinamico(afiliados, config) {
         return nivelAlcanzado ? nivelAlcanzado.nivel : 0;
     }
 
+    // 1. DETERMINAR ESTADO Y NIVEL DE CADA AFILIADO
     afiliados.forEach(usuario => {
         usuario.nombre_patrocinador = usuario.id_patrocinador 
             ? (mapaUsuarios[usuario.id_patrocinador] || `ID: ${usuario.id_patrocinador}`) 
@@ -49,6 +50,16 @@ function procesarCalculosMLMDinamico(afiliados, config) {
 
     const nivelMaximoExistente = niveles.length > 0 ? Math.max(...niveles.map(n => n.nivel)) : 4;
 
+    // Mapa para consultar el porcentaje de spread por red configurado según la diferencia de niveles
+    // Nivel diferencia 1 -> Spread Nivel 1 (1/6 = 16.66%)
+    // Nivel diferencia 2 -> Spread Nivel 2 (2/6 = 33.33%)
+    // Nivel diferencia 3 -> Spread Nivel 3 (3/6 = 50.00%)
+    const mapaSpreadPorDiferencia = {};
+    niveles.forEach(n => {
+        mapaSpreadPorDiferencia[n.nivel] = n.spread_red || 0;
+    });
+
+    // 2. CALCULAR COMISIONES
     afiliados.forEach(usuario => {
         if (usuario.estado === "Inactivo") {
             usuario.comision_propia = 0;
@@ -67,13 +78,21 @@ function procesarCalculosMLMDinamico(afiliados, config) {
 
         const descendientes = afiliados.filter(sub => sub.id !== usuario.id && sub.ruta_de_red && sub.ruta_de_red.startsWith(usuario.ruta_de_red));
 
-        descendientes.forEach(desc => {
-            const configDesc = niveles.find(n => n.nivel === desc.nivel);
-            if (configDesc && configDesc.spread_red) {
-                usuario.comision_por_red += desc.utilidad_propia * configDesc.spread_red;
-            }
-        });
+        // Nivel 1 solo gana por compra propia (comision_por_red = 0)
+        if (usuario.nivel > 1) {
+            descendientes.forEach(desc => {
+                // Solo genera comisión si el descendiente tiene un nivel inferior
+                if (desc.nivel > 0 && usuario.nivel > desc.nivel) {
+                    const diferenciaNivel = usuario.nivel - desc.nivel;
+                    // Obtiene la fracción correspondiente a la diferencia de nivel
+                    const factorSpread = mapaSpreadPorDiferencia[diferenciaNivel] || 0;
+                    
+                    usuario.comision_por_red += desc.utilidad_propia * factorSpread;
+                }
+            });
+        }
 
+        // CALCULO DE BONO DE LIDERAZGO
         if (usuario.nivel === nivelMaximoExistente) {
             const nivelesMaxDirectos = afiliados.filter(sub => sub.id_patrocinador === usuario.id && sub.nivel === nivelMaximoExistente);
             const cantidadNivelesMaxDirectos = nivelesMaxDirectos.length;

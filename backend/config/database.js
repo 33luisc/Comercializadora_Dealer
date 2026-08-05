@@ -107,10 +107,17 @@ db.serialize(() => {
     db.get(`SELECT COUNT(*) as total FROM configuracion_niveles`, [], (err, row) => {
         if (!err && row.total === 0) {
             const stmt = db.prepare(`INSERT INTO configuracion_niveles (nivel, umbral, porcentaje_propio, spread_red) VALUES (?, ?, ?, ?)`);
-            stmt.run([1, 50000, 0.1666666667, 0.5000000000]);
-            stmt.run([2, 400000, 0.3333333333, 0.3333333333]);
-            stmt.run([3, 2000000, 0.5000000000, 0.1666666667]);
+            
+            // MAPEO SEGÚN NUEVA LÓGICA DE NIVELES Y DIFERENCIALES
+            // Nivel 1: Dif 1 -> Spread 1/6 (~0.1666666667)
+            // Nivel 2: Dif 2 -> Spread 2/6 (~0.3333333333)
+            // Nivel 3: Dif 3 -> Spread 3/6 (~0.5000000000)
+            // Nivel 4: Dif 0 -> Spread 0.0
+            stmt.run([1, 50000,   0.1666666667, 0.1666666667]);
+            stmt.run([2, 400000,  0.3333333333, 0.3333333333]);
+            stmt.run([3, 2000000, 0.5000000000, 0.5000000000]);
             stmt.run([4, 6000000, 0.6666666667, 0.0000000000]);
+            
             stmt.finalize();
         }
     });
