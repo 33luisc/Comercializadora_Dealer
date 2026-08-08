@@ -30,24 +30,36 @@ function App() {
   const [adminUser, setAdminUser] = useState(null);
   const [cargandoSesion, setCargandoSesion] = useState(true);
 
-  // Verificar sesión persistente al cargar la app
+  // 1. Cargar sesión activa usando sessionStorage (se elimina al cerrar la pestaña/navegador)
   useEffect(() => {
-    const savedUser = localStorage.getItem('adminUser');
-    const token = localStorage.getItem('adminToken');
+    const savedUser = sessionStorage.getItem('adminUser');
+    const token = sessionStorage.getItem('adminToken');
     if (savedUser && token) {
       try {
         setAdminUser(JSON.parse(savedUser));
       } catch (e) {
-        localStorage.removeItem('adminToken');
-        localStorage.removeItem('adminUser');
+        sessionStorage.removeItem('adminToken');
+        sessionStorage.removeItem('adminUser');
       }
     }
     setCargandoSesion(false);
   }, []);
 
+  // 2. Heartbeat para indicar al Backend que la pestaña del navegador sigue abierta
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetch('http://localhost:4000/api/ping').catch(() => {
+        // Silenciar errores si el backend no responde
+      });
+    }, 2000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // Manejador del Cierre de Sesión Manual
   const handleLogout = () => {
-    localStorage.removeItem('adminToken');
-    localStorage.removeItem('adminUser');
+    sessionStorage.removeItem('adminToken');
+    sessionStorage.removeItem('adminUser');
     setAdminUser(null);
     setVistaActiva('tabla');
   };
@@ -72,7 +84,10 @@ function App() {
           setSuccessMsg={setSuccessMsg} 
         />
         <LoginView 
-          onLoginSuccess={(user) => {
+          onLoginSuccess={(user, token) => {
+            // Guarda en sessionStorage para que expire al cerrar el navegador
+            sessionStorage.setItem('adminUser', JSON.stringify(user));
+            sessionStorage.setItem('adminToken', token);
             setAdminUser(user);
             setVistaActiva('tabla');
           }} 
@@ -115,7 +130,7 @@ function App() {
           onCierreMes={handleCierreMes}
           onCargarPeriodoHistorico={cargarPeriodoHistorico} 
           onCargarDatos={cargarDatos}
-          datosHistoricos={datosHistoricos} /* <--- SE PASAN LOS DATOS PARA LA EXPORTACIÓN */
+          datosHistoricos={datosHistoricos}
         />
 
         {/* VISTA 1: PANEL DE CONFIGURACIÓN DE PARÁMETROS */}
