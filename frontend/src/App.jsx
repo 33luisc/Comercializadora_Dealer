@@ -117,24 +117,49 @@ function App() {
       {/* CUERPO PRINCIPAL */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
-        {/* NAVEGACIÓN Y CONTROLES DEL DASHBOARD */}
-        <DashboardControls 
-          rentabilidad={rentabilidad} 
-          vistaActiva={vistaActiva} 
-          setVistaActiva={setVistaActiva}
-          verHistorico={verHistorico} 
-          setVerHistorico={setVerHistorico} 
-          periodoCierre={periodoCierre}
-          setPeriodoCierre={setPeriodoCierre} 
-          onCierreMes={handleCierreMes}
-          onCargarPeriodoHistorico={cargarPeriodoHistorico} 
-          onCargarDatos={cargarDatos}
-          datosHistoricos={datosHistoricos}
-        />
+        {/* NAVEGACIÓN Y CONTROLES DEL DASHBOARD (Solo visible en Tabla o Árbol) */}
+        {vistaActiva !== 'config' && (
+          <DashboardControls 
+            rentabilidad={rentabilidad} 
+            vistaActiva={vistaActiva} 
+            setVistaActiva={setVistaActiva}
+            verHistorico={verHistorico} 
+            setVerHistorico={setVerHistorico} 
+            periodoCierre={periodoCierre}
+            setPeriodoCierre={setPeriodoCierre} 
+            onCierreMes={handleCierreMes}
+            onCargarPeriodoHistorico={cargarPeriodoHistorico} 
+            onCargarDatos={cargarDatos}
+            datosHistoricos={datosHistoricos}
+          />
+        )}
 
         {/* VISTA 1: PANEL DE CONFIGURACIÓN DE PARÁMETROS */}
         {vistaActiva === 'config' && (
           <div className="mt-6">
+            {/* Botón para regresar al Dashboard principal */}
+            <div className="mb-4">
+              <button
+                onClick={() => setVistaActiva('tabla')}
+                style={{
+                  backgroundColor: '#ffffff',
+                  color: '#374151',
+                  border: '1px solid #e5e7eb',
+                  padding: '8px 16px',
+                  borderRadius: '10px',
+                  fontSize: '13px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+                }}
+              >
+                ⬅️ Volver al Panel Principal
+              </button>
+            </div>
+
             <AdminConfigPanel 
               onConfigSaved={cargarDatos}
               setSuccessMsg={setSuccessMsg}
@@ -149,7 +174,7 @@ function App() {
             
             {/* Columna Izquierda: Formulario */}
             <div className="w-full lg:w-[280px] lg:flex-shrink-0 bg-white p-5 rounded-2xl box-border">
-                <RegisterMemberForm 
+              <RegisterMemberForm 
                 formData={formData} 
                 setFormData={setFormData}
                 afiliados={afiliados} 

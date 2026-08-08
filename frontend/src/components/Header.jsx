@@ -106,7 +106,7 @@ export default function Header({ adminUser, onLogout, onOpenConfig }) {
             {adminUser ? (
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 
-                {/* Badge con Nombre de Usuario Admin */}
+                {/* Badge con Nombre de Usuario Admin 
                 <div style={{
                   backgroundColor: '#eef2ff',
                   border: '1px solid #c7d2fe',
@@ -121,7 +121,7 @@ export default function Header({ adminUser, onLogout, onOpenConfig }) {
                 }}>
                   <span>👤</span>
                   <span>{adminUser.nombre || adminUser.usuario}</span>
-                </div>
+                </div>*/}
 
                 {/* Botón de Configuración */}
                 <button
