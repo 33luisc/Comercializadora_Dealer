@@ -1,9 +1,15 @@
 // src/components/MembersTable.jsx
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 
 function MembersTable({ verHistorico, datosHistoricos = [], afiliados = [], onOpenBitacora, onOpenTransaccion, onDelete }) {
   const [busqueda, setBusqueda] = useState('');
   const [hoveredRow, setHoveredRow] = useState(null);
+
+  // Referencia y estados para el comportamiento de arrastrar con el mouse (Drag to Scroll)
+  const tableContainerRef = useRef(null);
+  const [isMouseDown, setIsMouseDown] = useState(false);
+  const [startX, setStartX] = useState(0);
+  const [scrollLeft, setScrollLeft] = useState(0);
 
   const listaOriginal = verHistorico ? datosHistoricos : afiliados;
 
@@ -18,18 +24,51 @@ function MembersTable({ verHistorico, datosHistoricos = [], afiliados = [], onOp
     return nombreCompleto.includes(q) || cedula.includes(q) || celular.includes(q) || id.includes(q);
   });
 
+  // Manejadores para el arrastre tipo mano (grab/grabbing)
+  const handleMouseDown = (e) => {
+    // Evita activar el arrastre si se hace clic en botones o enlaces dentro de la tabla
+    if (['BUTTON', 'A', 'INPUT', 'SPAN'].includes(e.target.tagName)) return;
+    
+    setIsMouseDown(true);
+    setStartX(e.pageX - tableContainerRef.current.offsetLeft);
+    setScrollLeft(tableContainerRef.current.scrollLeft);
+  };
+
+  const handleMouseLeave = () => {
+    setIsMouseDown(false);
+  };
+
+  const handleMouseUp = () => {
+    setIsMouseDown(false);
+  };
+
+  const handleMouseMove = (e) => {
+    if (!isMouseDown) return;
+    e.preventDefault();
+    const x = e.pageX - tableContainerRef.current.offsetLeft;
+    const walk = (x - startX) * 1.5;
+    tableContainerRef.current.scrollLeft = scrollLeft - walk;
+  };
+
   return (
     <div style={{ 
       backgroundColor: '#ffffff', 
       borderRadius: '14px', 
-      padding: '0',
-      overflowX: 'auto', 
+      padding: '20px',
       fontFamily: 'sans-serif',
       width: '100%',
       boxSizing: 'border-box'
     }}>
-      {/* Barra de Búsqueda */}
-      <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+      {/* Barra de Búsqueda y Contador */}
+      <div style={{ 
+        marginTop: '4px',
+        marginBottom: '20px', 
+        display: 'flex', 
+        justify: 'space-between', 
+        alignItems: 'center', 
+        gap: '12px', 
+        flexWrap: 'wrap' 
+      }}>
         <div style={{ position: 'relative', flex: '1', minWidth: '220px', maxWidth: '360px' }}>
           <input 
             type="text" 
@@ -58,10 +97,26 @@ function MembersTable({ verHistorico, datosHistoricos = [], afiliados = [], onOp
         </div>
       </div>
 
-      {/* Tabla */}
-      <div style={{ borderRadius: '10px', border: '1px solid #f1f5f9', overflow: 'hidden' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px', minWidth: '850px' }}>
-          <thead>
+      {/* Contenedor con Scroll e Interactividad de Mano (Drag-to-scroll) */}
+      <div 
+        ref={tableContainerRef}
+        onMouseDown={handleMouseDown}
+        onMouseLeave={handleMouseLeave}
+        onMouseUp={handleMouseUp}
+        onMouseMove={handleMouseMove}
+        style={{ 
+          borderRadius: '10px', 
+          border: '1px solid #e2e8f0', 
+          overflowX: 'auto', 
+          overflowY: 'auto',
+          maxHeight: '520px',
+          width: '100%',
+          cursor: isMouseDown ? 'grabbing' : 'grab',
+          userSelect: 'none'
+        }}
+      >
+        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px', minWidth: '950px' }}>
+          <thead style={{ position: 'sticky', top: 0, backgroundColor: '#f8fafc', zIndex: 10 }}>
             <tr style={{ backgroundColor: '#f8fafc', color: '#475569', textTransform: 'uppercase', fontSize: '11px', letterSpacing: '0.05em' }}>
               <th style={{ padding: '12px 10px', textAlign: 'center', fontWeight: '700', borderBottom: '1px solid #e2e8f0' }}>ID</th>
               <th style={{ padding: '12px 10px', fontWeight: '700', borderBottom: '1px solid #e2e8f0' }}>Nombre y Apellido</th>
@@ -98,7 +153,7 @@ function MembersTable({ verHistorico, datosHistoricos = [], afiliados = [], onOp
                       transition: 'background-color 0.15s ease' 
                     }}
                   >
-                    {/* 1. CORRECCIÓN DE ID (whiteSpace: 'nowrap' e inline-block) */}
+                    {/* ID */}
                     <td style={{ padding: '10px 8px', textAlign: 'center', whiteSpace: 'nowrap' }}>
                       <span style={{ 
                         backgroundColor: '#1e293b', 
@@ -114,7 +169,7 @@ function MembersTable({ verHistorico, datosHistoricos = [], afiliados = [], onOp
                       </span>
                     </td>
 
-                    {/* 2. CORRECCIÓN DE ALINEACIÓN DEL LIBRO DE BITÁCORA */}
+                    {/* Nombre y Apellido + Botón Bitácora */}
                     <td style={{ padding: '10px' }}>
                       <div style={{ 
                         display: 'flex', 
@@ -123,7 +178,7 @@ function MembersTable({ verHistorico, datosHistoricos = [], afiliados = [], onOp
                         gap: '8px',
                         width: '100%'
                       }}>
-                        <span style={{ fontWeight: '700', color: '#0f172a' }}>
+                        <span style={{ fontWeight: '700', color: '#0f172a', whiteSpace: 'nowrap' }}>
                           {a.nombre} {a.apellido || ''}
                         </span>
 
@@ -141,7 +196,7 @@ function MembersTable({ verHistorico, datosHistoricos = [], afiliados = [], onOp
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
-                              flexShrink: 0, // Evita que el botón se deforme
+                              flexShrink: 0,
                               transition: 'all 0.2s',
                               opacity: isHovered ? 1 : 0.7
                             }}
@@ -180,12 +235,12 @@ function MembersTable({ verHistorico, datosHistoricos = [], afiliados = [], onOp
                     </td>
 
                     {/* Patrocinador */}
-                    <td style={{ padding: '10px', color: '#475569', fontSize: '12px' }}>
+                    <td style={{ padding: '10px', color: '#475569', fontSize: '12px', whiteSpace: 'nowrap' }}>
                       {verHistorico ? 'N/A' : (a.nombre_patrocinador || <span style={{ backgroundColor: '#f1f5f9', padding: '2px 6px', borderRadius: '4px', fontWeight: '600', color: '#64748b' }}>Raíz</span>)}
                     </td>
 
                     {/* Estado */}
-                    <td style={{ padding: '10px', textAlign: 'center' }}>
+                    <td style={{ padding: '10px', textAlign: 'center', whiteSpace: 'nowrap' }}>
                       <span style={{
                         padding: '3px 8px',
                         borderRadius: '9999px',
@@ -199,7 +254,7 @@ function MembersTable({ verHistorico, datosHistoricos = [], afiliados = [], onOp
                     </td>
 
                     {/* Nivel */}
-                    <td style={{ padding: '10px', textAlign: 'center' }}>
+                    <td style={{ padding: '10px', textAlign: 'center', whiteSpace: 'nowrap' }}>
                       <span style={{ backgroundColor: '#eff6ff', color: '#1d4ed8', padding: '3px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: '700' }}>
                         Nivel {a.nivel}
                       </span>
@@ -238,7 +293,7 @@ function MembersTable({ verHistorico, datosHistoricos = [], afiliados = [], onOp
                     </td>
 
                     {/* Acciones */}
-                    <td style={{ padding: '10px', textAlign: 'center' }}>
+                    <td style={{ padding: '10px', textAlign: 'center', whiteSpace: 'nowrap' }}>
                       {!verHistorico && (
                         <button 
                           onClick={() => onDelete(a.id)} 

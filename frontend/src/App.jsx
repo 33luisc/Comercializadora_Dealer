@@ -30,7 +30,7 @@ function App() {
   const [adminUser, setAdminUser] = useState(null);
   const [cargandoSesion, setCargandoSesion] = useState(true);
 
-  // 1. Cargar sesión activa usando sessionStorage (se elimina al cerrar la pestaña/navegador)
+  // 1. Cargar sesión activa usando sessionStorage
   useEffect(() => {
     const savedUser = sessionStorage.getItem('adminUser');
     const token = sessionStorage.getItem('adminToken');
@@ -85,7 +85,6 @@ function App() {
         />
         <LoginView 
           onLoginSuccess={(user, token) => {
-            // Guarda en sessionStorage para que expire al cerrar el navegador
             sessionStorage.setItem('adminUser', JSON.stringify(user));
             sessionStorage.setItem('adminToken', token);
             setAdminUser(user);
@@ -96,7 +95,7 @@ function App() {
     );
   }
 
-  // 3. APLICACIÓN PRINCIPAL (Solo accesible si adminUser es válido)
+  // 3. APLICACIÓN PRINCIPAL
   return (
     <div className="min-h-screen bg-gray-50/50 text-gray-900 antialiased font-sans pb-12">
       
@@ -146,30 +145,11 @@ function App() {
 
         {/* VISTA 2: VISTA PRINCIPAL (TABLA / ÁRBOL DE RED) */}
         {(vistaActiva === 'tabla' || vistaActiva === 'arbol') && (
-          <div style={{ 
-            display: 'flex', 
-            flexWrap: 'wrap', 
-            gap: '20px', 
-            alignItems: 'flex-start', 
-            marginTop: '24px',
-            width: '100%'
-          }}>
+          <div className="mt-6 flex flex-col lg:flex-row gap-6 items-start w-full">
             
             {/* Columna Izquierda: Formulario */}
-            <div style={{ 
-              flex: '0 0 280px',
-              maxWidth: '300px',
-              backgroundColor: '#ffffff', 
-              padding: '20px', 
-              borderRadius: '16px', 
-              border: '1px solid #e2e8f0', 
-              boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
-              boxSizing: 'border-box'
-            }}>
-              <h3 style={{ margin: '0 0 14px 0', fontSize: '14px', fontWeight: '800', color: '#030712', borderBottom: '1px solid #f1f5f9', paddingBottom: '10px' }}>
-                👤 Registrar Miembro
-              </h3>
-              <RegisterMemberForm 
+            <div className="w-full lg:w-[280px] lg:flex-shrink-0 bg-white p-5 rounded-2xl box-border">
+                <RegisterMemberForm 
                 formData={formData} 
                 setFormData={setFormData}
                 afiliados={afiliados} 
@@ -178,16 +158,7 @@ function App() {
             </div>
 
             {/* Columna Derecha: Tabla o Árbol */}
-            <div style={{ 
-              flex: '1 1 65%',
-              minWidth: '0',
-              backgroundColor: '#ffffff', 
-              padding: '20px', 
-              borderRadius: '16px', 
-              border: '1px solid #e2e8f0', 
-              boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
-              boxSizing: 'border-box'
-            }}>
+            <div className="w-full flex-1 min-w-0 bg-white p-5 rounded-2xl box-border overflow-hidden">
               {vistaActiva === 'tabla' ? (
                 <MembersTable 
                   verHistorico={verHistorico} 

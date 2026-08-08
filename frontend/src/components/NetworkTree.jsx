@@ -1,18 +1,18 @@
 // src/components/NetworkTree.jsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
-// Subcomponente NodoArbol optimizado
-function NodoArbol({ miembro, todosLosAfiliados, expandirTodo }) {
+// Subcomponente NodoArbol
+function NodoArbol({ miembro, todosLosAfiliados, expandirTodo, coincidenciaIds }) {
   const [abierto, setAbierto] = useState(true);
 
   // Forzamos el estado abierto si el control global lo solicita
-  React.useEffect(() => {
+  useEffect(() => {
     if (expandirTodo !== null) {
       setAbierto(expandirTodo);
     }
   }, [expandirTodo]);
 
-  // Filtrar hijos directos
+  // Filtrar hijos directos basándose únicamente en la lista filtrada permitida
   const hijos = todosLosAfiliados.filter(a => Number(a.id_patrocinador) === Number(miembro.id));
   const tieneHijos = hijos.length > 0;
 
@@ -28,13 +28,16 @@ function NodoArbol({ miembro, todosLosAfiliados, expandirTodo }) {
 
   const totalRed = contarDescendientes(miembro.id);
   const esActivo = miembro.estado === 'Activo';
+  
+  // Resaltar la tarjeta si coincide directamente con el filtro ingresado
+  const esCoincidenciaDirecta = coincidenciaIds.has(miembro.id);
 
   return (
     <div style={{ 
       marginLeft: '20px', 
       borderLeft: '2px solid #e2e8f0', 
       paddingLeft: '16px', 
-      marginTop: '10px',
+      marginTop: '20px',
       position: 'relative'
     }}>
       {/* Tarjeta del Nodo Individual */}
@@ -43,10 +46,10 @@ function NodoArbol({ miembro, todosLosAfiliados, expandirTodo }) {
         flexDirection: 'column',
         gap: '8px', 
         padding: '12px 16px', 
-        backgroundColor: esActivo ? '#ffffff' : '#f8fafc', 
+        backgroundColor: esCoincidenciaDirecta ? '#f0fdf4' : (esActivo ? '#ffffff' : '#f8fafc'), 
         borderRadius: '14px',
-        border: esActivo ? '1px solid #cbd5e1' : '1px solid #e2e8f0',
-        boxShadow: '0 2px 5px rgba(0,0,0,0.04)',
+        border: esCoincidenciaDirecta ? '2px solid #22c55e' : (esActivo ? '1px solid #cbd5e1' : '1px solid #e2e8f0'),
+        boxShadow: esCoincidenciaDirecta ? '0 0 8px rgba(34, 197, 94, 0.2)' : '0 2px 5px rgba(0,0,0,0.04)',
         transition: 'all 0.2s',
         minWidth: '320px',
         maxWidth: '520px'
@@ -154,7 +157,13 @@ function NodoArbol({ miembro, todosLosAfiliados, expandirTodo }) {
       {tieneHijos && abierto && (
         <div style={{ marginTop: '2px' }}>
           {hijos.map(hijo => (
-            <NodoArbol key={hijo.id} miembro={hijo} todosLosAfiliados={todosLosAfiliados} expandirTodo={expandirTodo} />
+            <NodoArbol 
+              key={hijo.id} 
+              miembro={hijo} 
+              todosLosAfiliados={todosLosAfiliados} 
+              expandirTodo={expandirTodo} 
+              coincidenciaIds={coincidenciaIds}
+            />
           ))}
         </div>
       )}
@@ -167,19 +176,60 @@ function NetworkTree({ afiliados = [] }) {
   const [filtro, setFiltro] = useState('');
   const [expandirTodo, setExpandirTodo] = useState(null);
 
-  // Filtrado opcional para resaltar o encontrar afiliados
-  const afiliadosFiltrados = afiliados.filter(a => {
-    if (!filtro.trim()) return true;
-    const q = filtro.toLowerCase().trim();
-    const nombreCompleto = `${a.nombre || ''} ${a.apellido || ''}`.toLowerCase();
-    const cedula = String(a.cedula || '').toLowerCase();
-    const celular = String(a.celular || '').toLowerCase();
-    const id = String(a.id || '').toLowerCase();
-    return nombreCompleto.includes(q) || cedula.includes(q) || celular.includes(q) || id.includes(q);
-  });
+  // Auto-expandir cuando el usuario empieza a filtrar
+  const handleFilterChange = (e) => {
+    const val = e.target.value;
+    setFiltro(val);
+    if (val.trim() !== '') {
+      setExpandirTodo(true);
+    }
+  };
 
-  // Identificar los líderes raíz (sin patrocinador o con ID 0)
-  const raices = afiliadosFiltrados.filter(a => !a.id_patrocinador || Number(a.id_patrocinador) === 0);
+  // 1. Identificar afiliados que coinciden directamente con la consulta
+  const coincidenciaIds = new Set();
+  const q = filtro.toLowerCase().trim();
+
+  if (q) {
+    afiliados.forEach(a => {
+      const nombreCompleto = `${a.nombre || ''} ${a.apellido || ''}`.toLowerCase();
+      const cedula = String(a.cedula || '').toLowerCase();
+      const celular = String(a.celular || '').toLowerCase();
+      const id = String(a.id || '').toLowerCase();
+
+      if (nombreCompleto.includes(q) || cedula.includes(q) || celular.includes(q) || id.includes(q)) {
+        coincidenciaIds.add(a.id);
+      }
+    });
+  }
+
+  // 2. Construir la lista con los nodos coincidentes y todos sus ancestros para mantener la estructura visual del árbol
+  const idsVisibles = new Set(coincidenciaIds);
+  if (q) {
+    coincidenciaIds.forEach(id => {
+      let actual = afiliados.find(a => Number(a.id) === Number(id));
+      while (actual && actual.id_patrocinador) {
+        const padre = afiliados.find(a => Number(a.id) === Number(actual.id_patrocinador));
+        if (padre) {
+          idsVisibles.add(padre.id);
+          actual = padre;
+        } else {
+          break;
+        }
+      }
+    });
+  }
+
+  // Lista final de afiliados visibles para renderizar
+  const afiliadosVisibles = q 
+    ? afiliados.filter(a => idsVisibles.has(a.id))
+    : afiliados;
+
+  // Identificar los líderes raíz visibles (sin patrocinador o cuyo patrocinador no forma parte del filtro)
+  const raices = afiliadosVisibles.filter(a => 
+    !a.id_patrocinador || 
+    Number(a.id_patrocinador) === 0 || 
+    !afiliadosVisibles.some(p => Number(p.id) === Number(a.id_patrocinador))
+  );
 
   return (
     <div style={{ fontFamily: 'sans-serif', padding: '4px 0', width: '100%' }}>
@@ -189,7 +239,7 @@ function NetworkTree({ afiliados = [] }) {
           type="text" 
           placeholder="🔍 Buscar en la red..."
           value={filtro}
-          onChange={(e) => setFiltro(e.target.value)}
+          onChange={handleFilterChange}
           style={{ 
             padding: '8px 12px',
             fontSize: '13px',
@@ -198,7 +248,7 @@ function NetworkTree({ afiliados = [] }) {
             border: '1px solid #e5e7eb',
             borderRadius: '10px',
             outline: 'none',
-            minWidth: '220px'
+            minWidth: '240px'
           }}
         />
 
@@ -227,7 +277,13 @@ function NetworkTree({ afiliados = [] }) {
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', overflowX: 'auto', paddingBottom: '12px' }}>
           {raices.map(raiz => (
-            <NodoArbol key={raiz.id} miembro={raiz} todosLosAfiliados={afiliados} expandirTodo={expandirTodo} />
+            <NodoArbol 
+              key={raiz.id} 
+              miembro={raiz} 
+              todosLosAfiliados={afiliadosVisibles} 
+              expandirTodo={expandirTodo} 
+              coincidenciaIds={coincidenciaIds}
+            />
           ))}
         </div>
       )}
