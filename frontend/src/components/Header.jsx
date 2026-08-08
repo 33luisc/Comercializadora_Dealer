@@ -1,5 +1,86 @@
 // src/components/Header.jsx
+import { useState, useEffect } from 'react';
+
 export default function Header({ adminUser, onLogout, onOpenConfig }) {
+  // Estados posibles: 'online' (Sistema Activo), 'offline' (Sin Conexión a Red), 'error' (Backend Inactivo/Caído)
+  const [systemStatus, setSystemStatus] = useState('online');
+
+  useEffect(() => {
+    // 1. Escuchar desconexión del cliente (red/WiFi)
+    const handleOnline = () => checkStatus();
+    const handleOffline = () => setSystemStatus('offline');
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    // 2. Comprobar la respuesta del servidor (Backend)
+    const checkStatus = async () => {
+      if (!navigator.onLine) {
+        setSystemStatus('offline');
+        return;
+      }
+
+      try {
+        // Usa el endpoint /api/health que ya tienes en server.js (Puerto 4000)
+        const response = await fetch('http://localhost:4000/api/health', { 
+          method: 'GET',
+          signal: AbortSignal.timeout(2000) // Timeout de 2 segundos
+        });
+
+        if (response.ok) {
+          setSystemStatus('online');
+        } else {
+          setSystemStatus('error');
+        }
+      } catch (err) {
+        // Servidor caído o no alcanzable
+        setSystemStatus('error');
+      }
+    };
+
+    // Verificación inicial
+    checkStatus();
+
+    // Verificación constante cada 3 segundos
+    const interval = setInterval(checkStatus, 3000);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+      clearInterval(interval);
+    };
+  }, []);
+
+  // Configuración visual según el estado
+  const getStatusConfig = () => {
+    switch (systemStatus) {
+      case 'online':
+        return { 
+          text: 'Sistema Activo', 
+          color: '#10b981', 
+          bgColor: '#ecfdf5',
+          borderColor: '#a7f3d0'
+        };
+      case 'offline':
+        return { 
+          text: 'Sin Red Local', 
+          color: '#f59e0b', 
+          bgColor: '#fffbeb',
+          borderColor: '#fde68a'
+        };
+      case 'error':
+      default:
+        return { 
+          text: 'Sistema Inactivo', 
+          color: '#ef4444', 
+          bgColor: '#fef2f2',
+          borderColor: '#fecaca'
+        };
+    }
+  };
+
+  const status = getStatusConfig();
+
   return (
     <header style={{
       backgroundColor: '#ffffff',
@@ -70,60 +151,42 @@ export default function Header({ adminUser, onLogout, onOpenConfig }) {
             </div>
           </div>
 
-          {/* Lado Derecho: Controles de Sesión y Configuración */}
+          {/* Lado Derecho: Controles de Sesión e Indicador de Estado */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             
-            {/* Indicador de Estado del Sistema */}
+            {/* Indicador de Estado Dinámico */}
             <div style={{
               display: 'flex',
               alignItems: 'center',
               gap: '8px',
-              backgroundColor: '#f9fafb',
+              backgroundColor: status.bgColor,
               padding: '8px 14px',
               borderRadius: '12px',
-              border: '1px solid #f3f4f6'
+              border: `1px solid ${status.borderColor}`,
+              transition: 'all 0.3s ease'
             }}>
               <span style={{
                 height: '8px',
                 width: '8px',
                 borderRadius: '50%',
-                backgroundColor: '#10b981',
+                backgroundColor: status.color,
                 display: 'inline-block'
               }}></span>
               <span style={{
                 fontSize: '11px',
                 fontWeight: '700',
-                color: '#4b5563',
+                color: '#374151',
                 textTransform: 'uppercase',
                 letterSpacing: '0.05em',
                 fontFamily: 'sans-serif'
               }}>
-                Sistema Activo
+                {status.text}
               </span>
             </div>
 
-            {/* Si el Administrador inició sesión */}
+            {/* Administrador con Sesión Iniciada */}
             {adminUser ? (
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                
-                {/* Badge con Nombre de Usuario Admin 
-                <div style={{
-                  backgroundColor: '#eef2ff',
-                  border: '1px solid #c7d2fe',
-                  padding: '6px 12px',
-                  borderRadius: '12px',
-                  fontSize: '12px',
-                  fontWeight: '700',
-                  color: '#3730a3',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px'
-                }}>
-                  <span>👤</span>
-                  <span>{adminUser.nombre || adminUser.usuario}</span>
-                </div>*/}
-
-                {/* Botón de Configuración */}
                 <button
                   onClick={onOpenConfig}
                   style={{
@@ -144,7 +207,6 @@ export default function Header({ adminUser, onLogout, onOpenConfig }) {
                   ⚙️ Configuración
                 </button>
 
-                {/* Botón Salir */}
                 <button
                   onClick={onLogout}
                   title="Cerrar Sesión"
@@ -163,7 +225,6 @@ export default function Header({ adminUser, onLogout, onOpenConfig }) {
                 </button>
               </div>
             ) : (
-              /* Botón para Iniciar Sesión de Administrador */
               <button
                 onClick={onOpenConfig}
                 style={{
