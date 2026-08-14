@@ -1,4 +1,3 @@
-// src/components/RegisterMemberForm.jsx
 import React, { useState } from 'react';
 
 function RegisterMemberForm({ formData, setFormData, afiliados = [], onRegister }) {
@@ -25,19 +24,19 @@ function RegisterMemberForm({ formData, setFormData, afiliados = [], onRegister 
 
   const inputStyle = {
     width: '100%',
-    padding: '9px 12px',
-    fontSize: '13px',
+    padding: '7px 10px',
+    fontSize: '12px',
     color: '#1f2937',
     backgroundColor: '#f8fafc',
     border: '1px solid #e2e8f0',
-    borderRadius: '8px',
+    borderRadius: '6px',
     outline: 'none',
     transition: 'all 0.2s ease',
     boxSizing: 'border-box'
   };
 
   const labelStyle = {
-    fontSize: '11px',
+    fontSize: '10px',
     fontWeight: '700',
     color: '#475569',
     textTransform: 'uppercase',
@@ -47,7 +46,7 @@ function RegisterMemberForm({ formData, setFormData, afiliados = [], onRegister 
   const handleFocus = (e) => {
     e.target.style.backgroundColor = '#ffffff';
     e.target.style.borderColor = '#3b82f6';
-    e.target.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.15)';
+    e.target.style.boxShadow = '0 0 0 2px rgba(59, 130, 246, 0.15)';
   };
 
   const handleBlur = (e) => {
@@ -59,23 +58,23 @@ function RegisterMemberForm({ formData, setFormData, afiliados = [], onRegister 
   return (
     <div style={{
       backgroundColor: '#ffffff',
-      borderRadius: '14px',
-      padding: '20px',
+      borderRadius: '12px',
+      padding: '14px 18px',
       border: '1px solid #f1f5f9',
-      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05)',
+      boxShadow: '0 2px 4px rgba(0, 0, 0, 0.02)',
       width: '100%',
       boxSizing: 'border-box',
       fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
     }}>
       {/* Encabezado Estilizado */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '18px' }}>
-        <span style={{ fontSize: '18px' }}>👤</span>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '12px' }}>
+        <span style={{ fontSize: '15px' }}>👤</span>
         <h3 style={{ 
           margin: 0, 
-          fontSize: '16px', 
+          fontSize: '14px', 
           fontWeight: '700', 
           color: '#0f172a',
-          letterSpacing: '-0.02em'
+          letterSpacing: '-0.01em'
         }}>
           Registrar Miembro
         </h3>
@@ -86,21 +85,21 @@ function RegisterMemberForm({ formData, setFormData, afiliados = [], onRegister 
         style={{ 
           display: 'flex', 
           flexDirection: 'column', 
-          gap: '16px',
+          gap: '12px',
           width: '100%',
           boxSizing: 'border-box'
         }}
       >
-        {/* Grid para acomodar campos limpiamente */}
+        {/* Grid ajustado a 3 columnas simétricas */}
         <div style={{ 
           display: 'grid', 
-          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', 
-          gap: '14px', 
+          gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', 
+          gap: '10px 14px', 
           width: '100%' 
         }}>
           
           {/* Nombre */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
             <label style={labelStyle}>
               Nombre <span style={{ color: '#ef4444' }}>*</span>
             </label>
@@ -117,7 +116,7 @@ function RegisterMemberForm({ formData, setFormData, afiliados = [], onRegister 
           </div>
 
           {/* Apellido */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
             <label style={labelStyle}>
               Apellido <span style={{ color: '#ef4444' }}>*</span>
             </label>
@@ -134,7 +133,7 @@ function RegisterMemberForm({ formData, setFormData, afiliados = [], onRegister 
           </div>
 
           {/* Cédula */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
             <label style={labelStyle}>
               Cédula <span style={{ color: '#ef4444' }}>*</span>
             </label>
@@ -151,7 +150,7 @@ function RegisterMemberForm({ formData, setFormData, afiliados = [], onRegister 
           </div>
 
           {/* Celular */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
             <label style={labelStyle}>
               Celular <span style={{ color: '#ef4444' }}>*</span>
             </label>
@@ -168,9 +167,9 @@ function RegisterMemberForm({ formData, setFormData, afiliados = [], onRegister 
           </div>
 
           {/* Correo */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
             <label style={labelStyle}>
-              Correo <span style={{ fontSize: '10px', color: '#94a3b8', fontWeight: '400', textTransform: 'none' }}>(Opcional)</span>
+              Correo <span style={{ fontSize: '9px', color: '#94a3b8', fontWeight: '400', textTransform: 'none' }}>(Opcional)</span>
             </label>
             <input 
               type="email" 
@@ -184,7 +183,7 @@ function RegisterMemberForm({ formData, setFormData, afiliados = [], onRegister 
           </div>
 
           {/* Código del Patrocinador */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
             <label style={labelStyle}>
               Código del Patrocinador
             </label>
@@ -203,42 +202,44 @@ function RegisterMemberForm({ formData, setFormData, afiliados = [], onRegister 
 
         {/* Mensajes de Patrocinador */}
         {patrocinadorEncontrado && patrocinadorEncontrado !== 'NOT_FOUND' && (
-          <div style={{ fontSize: '12px', color: '#15803d', backgroundColor: '#f0fdf4', padding: '8px 12px', borderRadius: '8px', border: '1px solid #bbf7d0' }}>
+          <div style={{ fontSize: '11px', color: '#15803d', backgroundColor: '#f0fdf4', padding: '6px 10px', borderRadius: '6px', border: '1px solid #bbf7d0' }}>
             ✓ Patrocinador: <strong>{patrocinadorEncontrado.nombre} {patrocinadorEncontrado.apellido}</strong> (ID: {patrocinadorEncontrado.id})
           </div>
         )}
 
         {patrocinadorEncontrado === 'NOT_FOUND' && (
-          <div style={{ fontSize: '12px', color: '#b91c1c', backgroundColor: '#fef2f2', padding: '8px 12px', borderRadius: '8px', border: '1px solid #fecaca' }}>
+          <div style={{ fontSize: '11px', color: '#b91c1c', backgroundColor: '#fef2f2', padding: '6px 10px', borderRadius: '6px', border: '1px solid #fecaca' }}>
             ⚠ El código ingresado no corresponde a ningún usuario existente.
           </div>
         )}
 
-        {/* Botón Principal */}
-        <button 
-          type="submit" 
-          style={{ 
-            marginTop: '4px',
-            width: '100%',
-            backgroundColor: '#2563eb', 
-            color: '#ffffff', 
-            fontSize: '13px', 
-            fontWeight: '600', 
-            padding: '11px 16px', 
-            borderRadius: '8px', 
-            border: 'none',
-            cursor: 'pointer', 
-            boxShadow: '0 2px 4px rgba(37, 99, 235, 0.2)',
-            transition: 'all 0.15s ease',
-            boxSizing: 'border-box'
-          }}
-          onMouseEnter={(e) => e.target.style.backgroundColor = '#1d4ed8'}
-          onMouseLeave={(e) => e.target.style.backgroundColor = '#2563eb'}
-          onMouseDown={(e) => e.target.style.transform = 'scale(0.99)'}
-          onMouseUp={(e) => e.target.style.transform = 'scale(1)'}
-        >
-          ➕ Agregar Afiliado
-        </button>
+        {/* Botón Alineado a la Derecha */}
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '4px' }}>
+          <button 
+            type="submit" 
+            style={{ 
+              backgroundColor: '#2563eb', 
+              color: '#ffffff', 
+              fontSize: '12px', 
+              fontWeight: '600', 
+              padding: '8px 18px', 
+              borderRadius: '6px', 
+              border: 'none',
+              cursor: 'pointer', 
+              boxShadow: '0 1px 3px rgba(37, 99, 235, 0.2)',
+              transition: 'all 0.15s ease',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px'
+            }}
+            onMouseEnter={(e) => e.target.style.backgroundColor = '#1d4ed8'}
+            onMouseLeave={(e) => e.target.style.backgroundColor = '#2563eb'}
+            onMouseDown={(e) => e.target.style.transform = 'scale(0.98)'}
+            onMouseUp={(e) => e.target.style.transform = 'scale(1)'}
+          >
+            ➕ Agregar Afiliado
+          </button>
+        </div>
       </form>
     </div>
   );
