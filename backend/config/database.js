@@ -128,9 +128,9 @@ db.serialize(() => {
         if (!err && row && row.total === 0) {
             const stmt = db.prepare(`INSERT INTO configuracion_niveles (nivel, umbral, porcentaje_propio, spread_red) VALUES (?, ?, ?, ?)`);
             
-            stmt.run([1, 50000,   0.1666666667, 0.1666666667]);
+            stmt.run([1, 50000,   0.1666666667, 0.5000000000]);
             stmt.run([2, 400000,  0.3333333333, 0.3333333333]);
-            stmt.run([3, 2000000, 0.5000000000, 0.5000000000]);
+            stmt.run([3, 2000000, 0.5000000000, 0.1666666667]);
             stmt.run([4, 6000000, 0.6666666667, 0.0000000000]);
             
             stmt.finalize();

@@ -60,36 +60,43 @@ function procesarCalculosMLMDinamico(afiliados, config) {
 
     const nivelMaximoExistente = niveles.length > 0 ? Math.max(...niveles.map(n => n.nivel)) : 4;
 
-    // Mapa de spreads por diferencia de nivel
-    const mapaSpreadPorDiferencia = {};
+    // Mapa rápido de configuraciones por nivel
+    const mapaConfigNivel = {};
     niveles.forEach(n => {
-        mapaSpreadPorDiferencia[n.nivel] = n.spread_red || 0;
+        mapaConfigNivel[n.nivel] = n;
     });
 
-    // 2. CALCULAR COMISIÓN PROPIA Y DIFERENCIAL DE RED (UP-LINE TRAVERSAL)
+    // 2. CALCULAR COMISIÓN PROPIA Y DIFERENCIAL DE RED (CORREGIDO)
     afiliados.forEach(comprador => {
         const utilidadComprador = Number(comprador.utilidad_propia) || 0;
         if (comprador.estado === "Inactivo" || utilidadComprador <= 0) return;
 
         // A. Comisión Propia
-        const configNivelComprador = niveles.find(n => n.nivel === comprador.nivel);
-        const porcentajePropio = configNivelComprador ? configNivelComprador.porcentaje_propio : 0;
-        comprador.comision_propia = utilidadComprador * porcentajePropio;
+        const configNivelComprador = mapaConfigNivel[comprador.nivel];
+        const porcentajePropioComprador = configNivelComprador ? (Number(configNivelComprador.porcentaje_propio) || 0) : 0;
+        comprador.comision_propia = utilidadComprador * porcentajePropioComprador;
 
-        // B. Reparto Ascendente (Up-line) para la Comisión por Red
-        let nivelCobradoActual = comprador.nivel;
+        // B. Reparto Ascendente (Up-line) con Diferencial Real
+        let porcentajeCobradoAcumulado = porcentajePropioComprador;
         let idPatrocinadorActual = comprador.id_patrocinador;
 
         while (idPatrocinadorActual) {
             const patrocinador = mapaUsuarios[idPatrocinadorActual];
             if (!patrocinador) break;
 
-            if (patrocinador.estado === "Activo" && patrocinador.nivel > nivelCobradoActual) {
-                const diferenciaNivel = patrocinador.nivel - nivelCobradoActual;
-                const factorSpread = mapaSpreadPorDiferencia[diferenciaNivel] || 0;
+            if (patrocinador.estado === "Activo" && patrocinador.nivel > 0) {
+                const configPatrocinador = mapaConfigNivel[patrocinador.nivel];
+                const porcentajePatrocinador = configPatrocinador ? (Number(configPatrocinador.porcentaje_propio) || 0) : 0;
 
-                patrocinador.comision_por_red += utilidadComprador * factorSpread;
-                nivelCobradoActual = patrocinador.nivel;
+                // Solo cobra si el patrocinador tiene un porcentaje propio MAYOR a lo ya repartido
+                if (porcentajePatrocinador > porcentajeCobradoAcumulado) {
+                    const factorDiferencial = porcentajePatrocinador - porcentajeCobradoAcumulado;
+
+                    patrocinador.comision_por_red += utilidadComprador * factorDiferencial;
+                    
+                    // Elevamos la barra del porcentaje ya absorbido
+                    porcentajeCobradoAcumulado = porcentajePatrocinador;
+                }
             }
 
             idPatrocinadorActual = patrocinador.id_patrocinador;
