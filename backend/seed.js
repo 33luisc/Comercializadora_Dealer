@@ -1,46 +1,73 @@
-const ID_CAMILO = 1; 
+const API_URL = 'http://127.0.0.1:4000/api/afiliados';
+const TOTAL_USUARIOS = 200;
+const MAX_REFERIDOS = 15;
+const ID_INICIAL = 1; // ID de Camilo (primer patrocinador)
 
-const afiliadosDirectos = [
-  { nombre: 'Andrés', apellido: 'Mendoza', cedula: '2001', celular: '3101000001', correo: 'andres.m@test.com', id_patrocinador: ID_CAMILO },
-  { nombre: 'Sofia', apellido: 'Castro', cedula: '2002', celular: '3101000002', correo: 'sofia.c@test.com', id_patrocinador: ID_CAMILO },
-  { nombre: 'Mateo', apellido: 'Ríos', cedula: '2003', celular: '3101000003', correo: 'mateo.r@test.com', id_patrocinador: ID_CAMILO },
-  { nombre: 'Valentina', apellido: 'Morales', cedula: '2004', celular: '3101000004', correo: 'valentina.m@test.com', id_patrocinador: ID_CAMILO },
-  { nombre: 'Diego', apellido: 'Herrera', cedula: '2005', celular: '3101000005', correo: 'diego.h@test.com', id_patrocinador: ID_CAMILO },
-  { nombre: 'Camila', apellido: 'Vargas', cedula: '2006', celular: '3101000006', correo: 'camila.v@test.com', id_patrocinador: ID_CAMILO },
-  { nombre: 'Gabriel', apellido: 'Ortega', cedula: '2007', celular: '3101000007', correo: 'gabriel.o@test.com', id_patrocinador: ID_CAMILO },
-  { nombre: 'Isabella', apellido: 'Silva', cedula: '2008', celular: '3101000008', correo: 'isabella.s@test.com', id_patrocinador: ID_CAMILO },
-  { nombre: 'Alejandro', apellido: 'Navarro', cedula: '2009', celular: '3101000009', correo: 'alejandro.n@test.com', id_patrocinador: ID_CAMILO },
-  { nombre: 'Mariana', apellido: 'Rojas', cedula: '2010', celular: '3101000010', correo: 'mariana.r@test.com', id_patrocinador: ID_CAMILO },
-  { nombre: 'Daniel', apellido: 'Medina', cedula: '2011', celular: '3101000011', correo: 'daniel.m@test.com', id_patrocinador: ID_CAMILO },
-  { nombre: 'Lucía', apellido: 'Cortés', cedula: '2012', celular: '3101000012', correo: 'lucia.c@test.com', id_patrocinador: ID_CAMILO },
-  { nombre: 'Santiago', apellido: 'Guerrero', cedula: '2013', celular: '3101000013', correo: 'santiago.g@test.com', id_patrocinador: ID_CAMILO },
-  { nombre: 'Natalia', apellido: 'Salazar', cedula: '2014', celular: '3101000014', correo: 'natalia.s@test.com', id_patrocinador: ID_CAMILO },
-  { nombre: 'Felipe', apellido: 'Delgado', cedula: '2015', celular: '3101000015', correo: 'felipe.d@test.com', id_patrocinador: ID_CAMILO }
-];
+const nombres = ['Andrés', 'Sofía', 'Mateo', 'Valentina', 'Diego', 'Camila', 'Gabriel', 'Isabella', 'Alejandro', 'Mariana', 'Daniel', 'Lucía', 'Santiago', 'Natalia', 'Felipe', 'Carlos', 'Andrea', 'Javier', 'Elena', 'Nicolás'];
+const apellidos = ['Mendoza', 'Castro', 'Ríos', 'Morales', 'Herrera', 'Vargas', 'Ortega', 'Silva', 'Navarro', 'Rojas', 'Medina', 'Cortés', 'Guerrero', 'Salazar', 'Delgado', 'Gómez', 'López', 'Martínez', 'Torres', 'Ramírez'];
 
-async function registrarDirectos() {
-  console.log(`🚀 Registrando 15 afiliados directos para el patrocinador ID: ${ID_CAMILO}...\n`);
+// Genera un arreglo de 200 usuarios distribuidos en niveles
+function generarUsuarios(total) {
+  const usuarios = [];
 
-  for (const usuario of afiliadosDirectos) {
+  for (let i = 0; i < total; i++) {
+    // Cálculo del ID del patrocinador asegurando máximo 15 por cada uno
+    // i = 0 a 14  -> id_patrocinador = 1
+    // i = 15 a 29 -> id_patrocinador = 2
+    // i = 30 a 44 -> id_patrocinador = 3 ...
+    const idPatrocinador = ID_INICIAL + Math.floor(i / MAX_REFERIDOS);
+    
+    const nombre = nombres[i % nombres.length];
+    const apellido = apellidos[Math.floor(i / nombres.length) % apellidos.length];
+    const numeroUnico = (i + 1).toString().padStart(3, '0');
+
+    usuarios.push({
+      nombre: `${nombre}`,
+      apellido: `${apellido}`,
+      cedula: `2000${numeroUnico}`,
+      celular: `310100${numeroUnico.padStart(4, '0')}`,
+      correo: `${nombre.toLowerCase()}.${apellido.toLowerCase()}${numeroUnico}@test.com`,
+      id_patrocinador: idPatrocinador
+    });
+  }
+
+  return usuarios;
+}
+
+async function registrarUsuarios() {
+  const usuarios = generarUsuarios(TOTAL_USUARIOS);
+  
+  console.log(`🚀 Iniciando registro masivo de ${TOTAL_USUARIOS} usuarios en la red...\n`);
+
+  let exitosos = 0;
+  let fallidos = 0;
+
+  for (let i = 0; i < usuarios.length; i++) {
+    const usuario = usuarios[i];
     try {
-      const res = await fetch('http://127.0.0.1:4000/api/afiliados', {
+      const res = await fetch(API_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(usuario)
       });
 
       if (res.ok) {
-        console.log(`✅ Registrado: ${usuario.nombre} ${usuario.apellido}`);
+        exitosos++;
+        console.log(`[${i + 1}/${TOTAL_USUARIOS}] ✅ Registrado: ${usuario.nombre} ${usuario.apellido} (Patrocinador ID: ${usuario.id_patrocinador})`);
       } else {
+        fallidos++;
         const errorData = await res.json().catch(() => ({}));
-        console.error(`❌ Error registrando a ${usuario.nombre}:`, errorData.message || res.statusText);
+        console.error(`[${i + 1}/${TOTAL_USUARIOS}] ❌ Error con ${usuario.nombre}:`, errorData.message || res.statusText);
       }
     } catch (error) {
-      console.error(`❌ Error de conexión al registrar a ${usuario.nombre}:`, error.message);
+      fallidos++;
+      console.error(`[${i + 1}/${TOTAL_USUARIOS}] ❌ Error de conexión con ${usuario.nombre}:`, error.message);
     }
   }
 
-  console.log('\n✨ Proceso de registro finalizado.');
+  console.log('\n--- Resumen del proceso ---');
+  console.log(`✨ Completados exitosamente: ${exitosos}`);
+  console.log(`⚠️ Fallidos: ${fallidos}`);
 }
 
-registrarDirectos();
+registrarUsuarios();

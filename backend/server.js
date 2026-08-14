@@ -19,31 +19,28 @@ app.use(express.json());
 // --- LÓGICA DE AUTO-CIERRE (HEARTBEAT) ---
 let ultimoHeartbeat = Date.now();
 
-// Endpoint al que llama el Frontend en App.jsx cada 2 segundos
 app.get('/api/ping', (req, res) => {
     ultimoHeartbeat = Date.now();
     res.sendStatus(200);
 });
 
-// Comprobación de inactividad cada 3 segundos
+// Comprobación cada 5 segundos
 setInterval(() => {
     const tiempoInactivo = Date.now() - ultimoHeartbeat;
 
-    if (tiempoInactivo > 5000) {
-        console.log('🔴 Navegador cerrado. Finalizando base de datos y cerrando consolas...');
+    // Damos una tolerancia de 15 segundos (15000 ms)
+    if (tiempoInactivo > 15000) {
+        console.log('🔴 Navegador cerrado. Finalizando base de datos...');
 
         db.close((err) => {
             if (err) console.error('Error al cerrar la BD:', err.message);
             else console.log('🔒 Conexión a la base de datos SQLite cerrada.');
 
-            // Mata forzosamente todos los procesos de Node (destruye node.exe, vite y node --watch)
-            exec('taskkill /F /IM node.exe /T', () => {
-                // Mata las consolas CMD secundarias
-                exec('taskkill /F /IM cmd.exe /T');
-            });
+            // Cierra el proceso actual de Node limpiamente sin matar todo el sistema
+            process.exit(0);
         });
     }
-}, 3000);
+}, 5000);
 // ------------------------------------------
 
 // Montar Rutas API (Preservando 100% las URLs originales para el Frontend)

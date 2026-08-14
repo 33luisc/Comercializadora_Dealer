@@ -13,8 +13,31 @@ function DashboardControls({
   onCierreMes, 
   onCargarPeriodoHistorico, 
   onCargarDatos,
-  datosHistoricos = [] // <--- RECIBE LOS DATOS CONSULTADOS DEL HISTÓRICO
+  datosHistoricos = []
 }) {
+  // Obtener el mes actual en formato YYYY-MM para restricciones de entrada
+  const hoy = new Date();
+  const mesActualStr = hoy.toISOString().slice(0, 7);
+
+  // Validación: ¿El período seleccionado es un mes futuro?
+  const esMesFuturo = periodoCierre > mesActualStr;
+
+  // Manejador seguro para ejecutar el cierre
+  const handleEjecutarCierre = () => {
+    if (esMesFuturo) {
+      alert("⚠️ No puedes ejecutar el cierre de un mes futuro.");
+      return;
+    }
+
+    const confirmacion = window.confirm(
+      `⚠️ ¿Estás seguro de congelar los datos para el período [${periodoCierre}]?\n\nEsta acción creará la foto histórica correspondiente.`
+    );
+
+    if (confirmacion && onCierreMes) {
+      onCierreMes();
+    }
+  };
+
   return (
     <div style={{ width: '100%', fontFamily: 'sans-serif', marginBottom: '16px' }}>
       
@@ -29,8 +52,8 @@ function DashboardControls({
         {/* Tarjeta 1 */}
         <div style={{ backgroundColor: '#ffffff', padding: '20px', borderRadius: '16px', border: '1px solid #f3f4f6', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
-            <p style={{ margin: 0, fontSize: '10px', color: '#9ca3af', fontWeight: 'bold', textTransform: 'uppercase', tracking: '0.05em' }}>Utilidad Bruta</p>
-            <p style={{ margin: '4px 0 0 0', fontSize: '24px', fontWeight: 'bold', color: '#030712' }}>${Number(rentabilidad.utilidadGlobal || 0).toLocaleString()}</p>
+            <p style={{ margin: 0, fontSize: '10px', color: '#9ca3af', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Utilidad Bruta</p>
+            <p style={{ margin: '4px 0 0 0', fontSize: '24px', fontWeight: 'bold', color: '#030712' }}>${Number(rentabilidad?.utilidadGlobal || 0).toLocaleString()}</p>
           </div>
           <div style={{ padding: '10px', backgroundColor: '#eff6ff', color: '#2563eb', borderRadius: '12px', display: 'flex' }}>
             <svg style={{ width: '20px', height: '20px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
@@ -40,8 +63,8 @@ function DashboardControls({
         {/* Tarjeta 2 */}
         <div style={{ backgroundColor: '#ffffff', padding: '20px', borderRadius: '16px', border: '1px solid #f3f4f6', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
-            <p style={{ margin: 0, fontSize: '10px', color: '#9ca3af', fontWeight: 'bold', textTransform: 'uppercase', tracking: '0.05em' }}>Comisiones</p>
-            <p style={{ margin: '4px 0 0 0', fontSize: '24px', fontWeight: 'bold', color: '#dc2626' }}>${Number(rentabilidad.comisionesPagadas || 0).toLocaleString()}</p>
+            <p style={{ margin: 0, fontSize: '10px', color: '#9ca3af', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Comisiones</p>
+            <p style={{ margin: '4px 0 0 0', fontSize: '24px', fontWeight: 'bold', color: '#dc2626' }}>${Number(rentabilidad?.comisionesPagadas || 0).toLocaleString()}</p>
           </div>
           <div style={{ padding: '10px', backgroundColor: '#fef2f2', color: '#dc2626', borderRadius: '12px', display: 'flex' }}>
             <svg style={{ width: '20px', height: '20px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
@@ -51,8 +74,8 @@ function DashboardControls({
         {/* Tarjeta 3 */}
         <div style={{ backgroundColor: '#ffffff', padding: '20px', borderRadius: '16px', border: '1px solid #f3f4f6', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
-            <p style={{ margin: 0, fontSize: '10px', color: '#9ca3af', fontWeight: 'bold', textTransform: 'uppercase', tracking: '0.05em' }}>Margen Neto</p>
-            <p style={{ margin: '4px 0 0 0', fontSize: '24px', fontWeight: 'bold', color: '#16a34a' }}>${Number(rentabilidad.margenLibre || 0).toLocaleString()}</p>
+            <p style={{ margin: 0, fontSize: '10px', color: '#9ca3af', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Margen Neto</p>
+            <p style={{ margin: '4px 0 0 0', fontSize: '24px', fontWeight: 'bold', color: '#16a34a' }}>${Number(rentabilidad?.margenLibre || 0).toLocaleString()}</p>
           </div>
           <div style={{ padding: '10px', backgroundColor: '#f0fdf4', color: '#16a34a', borderRadius: '12px', display: 'flex' }}>
             <svg style={{ width: '20px', height: '20px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
@@ -62,8 +85,8 @@ function DashboardControls({
         {/* Tarjeta 4 */}
         <div style={{ backgroundColor: '#ffffff', padding: '20px', borderRadius: '16px', border: '1px solid #f3f4f6', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
-            <p style={{ margin: 0, fontSize: '10px', color: '#9ca3af', fontWeight: 'bold', textTransform: 'uppercase', tracking: '0.05em' }}>Payout Red</p>
-            <p style={{ margin: '4px 0 0 0', fontSize: '24px', fontWeight: 'bold', color: '#9333ea' }}>{rentabilidad.porcentajeRepartido || 0}%</p>
+            <p style={{ margin: 0, fontSize: '10px', color: '#9ca3af', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Payout Red</p>
+            <p style={{ margin: '4px 0 0 0', fontSize: '24px', fontWeight: 'bold', color: '#9333ea' }}>{rentabilidad?.porcentajeRepartido || 0}%</p>
           </div>
           <div style={{ padding: '10px', backgroundColor: '#faf5ff', color: '#9333ea', borderRadius: '12px', display: 'flex' }}>
             <svg style={{ width: '20px', height: '20px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z"/></svg>
@@ -75,7 +98,7 @@ function DashboardControls({
       {/* ACCIONES Y PERIODO CONTABLE */}
       <div style={{ 
         display: 'flex', 
-        justify: 'space-between', 
+        justifyContent: 'space-between', 
         alignItems: 'center', 
         flexWrap: 'wrap', 
         gap: '12px', 
@@ -104,12 +127,13 @@ function DashboardControls({
             </button>
           </div>
 
-          {/* Input de Fecha minimalista */}
+          {/* Input de Fecha con restricción de máximo (mes actual) */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '12px', padding: '6px 12px' }}>
             <span style={{ fontSize: '11px', color: '#9ca3af', fontWeight: 'bold', textTransform: 'uppercase' }}>Mes:</span>
             <input 
               type="month" 
               value={periodoCierre} 
+              max={mesActualStr}
               onChange={(e) => {
                 setPeriodoCierre(e.target.value);
                 if (verHistorico) onCargarPeriodoHistorico(e.target.value);
@@ -165,8 +189,20 @@ function DashboardControls({
           {!verHistorico && (
             <button 
               type="button"
-              onClick={onCierreMes}
-              style={{ backgroundColor: '#dc2626', border: 'none', color: '#ffffff', fontSize: '12px', fontWeight: 'bold', padding: '8px 16px', borderRadius: '12px', cursor: 'pointer', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}
+              onClick={handleEjecutarCierre}
+              disabled={esMesFuturo}
+              title={esMesFuturo ? "No puedes cerrar un mes futuro" : "Congelar métricas del período actual"}
+              style={{ 
+                backgroundColor: esMesFuturo ? '#f3f4f6' : '#dc2626', 
+                color: esMesFuturo ? '#9ca3af' : '#ffffff', 
+                border: 'none', 
+                fontSize: '12px', 
+                fontWeight: 'bold', 
+                padding: '8px 16px', 
+                borderRadius: '12px', 
+                cursor: esMesFuturo ? 'not-allowed' : 'pointer', 
+                boxShadow: esMesFuturo ? 'none' : '0 1px 2px rgba(0,0,0,0.05)' 
+              }}
             >
               🔒 Ejecutar Cierre de Mes
             </button>
