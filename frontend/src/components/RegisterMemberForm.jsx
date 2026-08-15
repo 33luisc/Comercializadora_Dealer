@@ -1,7 +1,8 @@
 import React, { useState, useRef } from 'react';
 
-function RegisterMemberForm({ formData, setFormData, afiliados = [], onRegister, onImportCSV }) {
+function RegisterMemberForm({ formData, setFormData, afiliados = [], onRegister, onReloadAfiliados }) {
   const [patrocinadorEncontrado, setPatrocinadorEncontrado] = useState(null);
+  const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef(null);
 
   const handlePatrocinadorChange = (e) => {
@@ -21,34 +22,48 @@ function RegisterMemberForm({ formData, setFormData, afiliados = [], onRegister,
     }
   };
 
-  const handleFileChange = (e) => {
+  // Manejador para enviar el archivo directo al backend
+  const handleFileChange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = (evt) => {
-      const content = evt.target.result;
-      const lines = content.split('\n').filter(line => line.trim() !== '');
-      if (lines.length <= 1) return;
+    // Crear el cuerpo de la petición con el archivo
+    const bodyFormData = new FormData();
+    bodyFormData.append('file', file);
 
-      const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
-      const data = lines.slice(1).map(line => {
-        const values = line.split(',').map(v => v.trim());
-        let obj = {};
-        headers.forEach((header, index) => {
-          obj[header] = values[index] || '';
-        });
-        return obj;
+    setIsUploading(true);
+
+    try {
+      const response = await fetch('http://localhost:4000/api/afiliados/importar-csv', {
+        method: 'POST',
+        body: bodyFormData,
       });
 
-      if (onImportCSV) {
-        onImportCSV(data);
-      } else {
-        console.log('Datos importados del CSV:', data);
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Error al procesar el archivo CSV.');
       }
-    };
-    reader.readAsText(file);
-    e.target.value = '';
+
+      // Preparar mensaje de resultado con detalles si hubo errores en filas
+      let mensaje = `${data.message}\nTotal insertados: ${data.insertados}`;
+      if (data.errores && data.errores.length > 0) {
+        mensaje += `\n\n⚠️ Errores o duplicados omitidos (${data.errores.length}):\n` + data.errores.join('\n');
+      }
+
+      alert(mensaje);
+
+      // Si le pasaste una función para recargar el listado de afiliados en el estado global/padre
+      if (onReloadAfiliados) {
+        onReloadAfiliados();
+      }
+
+    } catch (err) {
+      alert(`❌ Error en la importación: ${err.message}`);
+    } finally {
+      setIsUploading(false);
+      e.target.value = ''; // Resetear el input file para permitir subir el mismo archivo si se requiere
+    }
   };
 
   const inputStyle = {
@@ -70,7 +85,7 @@ function RegisterMemberForm({ formData, setFormData, afiliados = [], onRegister,
     color: '#475569',
     textTransform: 'uppercase',
     letterSpacing: '0.05em',
-    whiteSpace: 'nowrap' // Evita que la etiqueta se rompa en 2 líneas
+    whiteSpace: 'nowrap'
   };
 
   const handleFocus = (e) => {
@@ -106,7 +121,7 @@ function RegisterMemberForm({ formData, setFormData, afiliados = [], onRegister,
 
       <form onSubmit={onRegister} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
         
-        {/* Grid fluido: intenta poner los 6 en una línea, si no caben se adaptan */}
+        {/* Grid fluido */}
         <div style={{ 
           display: 'grid', 
           gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', 
@@ -251,25 +266,26 @@ function RegisterMemberForm({ formData, setFormData, afiliados = [], onRegister,
           
           <button 
             type="button" 
+            disabled={isUploading}
             onClick={() => fileInputRef.current && fileInputRef.current.click()}
             style={{ 
-              backgroundColor: '#f1f5f9', 
-              color: '#334155', 
+              backgroundColor: isUploading ? '#e2e8f0' : '#f1f5f9', 
+              color: isUploading ? '#94a3b8' : '#334155', 
               fontSize: '12px', 
               fontWeight: '600', 
               padding: '7px 14px', 
               borderRadius: '6px', 
               border: '1px solid #cbd5e1',
-              cursor: 'pointer', 
+              cursor: isUploading ? 'not-allowed' : 'pointer', 
               transition: 'all 0.15s ease',
               display: 'flex',
               alignItems: 'center',
               gap: '6px'
             }}
-            onMouseEnter={(e) => e.target.style.backgroundColor = '#e2e8f0'}
-            onMouseLeave={(e) => e.target.style.backgroundColor = '#f1f5f9'}
+            onMouseEnter={(e) => { if (!isUploading) e.target.style.backgroundColor = '#e2e8f0'; }}
+            onMouseLeave={(e) => { if (!isUploading) e.target.style.backgroundColor = '#f1f5f9'; }}
           >
-            📥 Importar CSV
+            {isUploading ? '⏳ Procesando...' : '📥 Importar CSV'}
           </button>
 
           <button 

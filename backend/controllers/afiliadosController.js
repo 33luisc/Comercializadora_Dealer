@@ -1,4 +1,6 @@
 const db = require('../config/database');
+const fs = require('fs');
+const csv = require('csv-parser');
 const { obtenerConfiguracionCompletaBD, procesarCalculosMLMDinamico } = require('../services/mlmService');
 
 exports.obtenerAfiliados = async (req, res) => {
@@ -140,4 +142,127 @@ exports.eliminarAfiliado = (req, res) => {
             res.json({ message: 'Afiliado removido de la red con éxito.' });
         });
     });
+};
+
+exports.importarAfiliadosCSV = async (req, res) => {
+    if (!req.file) {
+        return res.status(400).json({ error: 'No se subió ningún archivo CSV.' });
+    }
+
+    // 1. Obtener el límite de directos dinámico de la configuración MLM
+    let limiteDirectos = 15;
+    try {
+        const config = await obtenerConfiguracionCompletaBD();
+        if (config && config.general && config.general.limite_directos_bono) {
+            limiteDirectos = config.general.limite_directos_bono;
+        }
+    } catch (e) {
+        console.warn("No se pudo cargar límite dinámico en CSV, usando por defecto 15.");
+    }
+
+    const filePath = req.file.path;
+    const registros = [];
+
+    // 2. Leer con codificación 'utf-8' para preservar tildes y eñes
+    fs.createReadStream(filePath, { encoding: 'utf-8' })
+        .pipe(csv())
+        .on('data', (row) => {
+            const filaLimpia = {};
+            for (let key in row) {
+                // Eliminar posibles caracteres invisibles BOM de UTF-8 en las cabeceras
+                const claveLimpia = key.replace(/^\uFEFF/, '').trim();
+                filaLimpia[claveLimpia] = row[key] ? row[key].trim() : '';
+            }
+            registros.push(filaLimpia);
+        })
+        .on('end', async () => {
+            // Eliminar el archivo temporal creado por multer
+            if (fs.existsSync(filePath)) {
+                fs.unlinkSync(filePath);
+            }
+
+            if (registros.length === 0) {
+                return res.status(400).json({ error: 'El archivo CSV está vacío.' });
+            }
+
+            let insertados = 0;
+            let errores = [];
+
+            // 3. Procesar registros respetando el límite de la red MLM
+            for (let i = 0; i < registros.length; i++) {
+                const fila = registros[i];
+                const { nombre, apellido, cedula, celular, correo, id_patrocinador } = fila;
+
+                if (!nombre || !apellido || !cedula || !celular) {
+                    errores.push(`Fila ${i + 2}: Campos obligatorios faltantes (nombre, apellido, cédula, celular).`);
+                    continue;
+                }
+
+                const correoLimpio = (correo && correo !== '') ? correo : null;
+                const idPatrocinadorLimpio = id_patrocinador ? parseInt(id_patrocinador) : null;
+
+                try {
+                    await new Promise((resolve, reject) => {
+                        const procesarInsercion = (idPadre, rutaPadre) => {
+                            // Validar cuántos afiliados directos tiene el patrocinador actualmente
+                            const queryCount = `SELECT COUNT(*) as total FROM afiliados WHERE id_patrocinador = ?`;
+                            db.get(queryCount, [idPadre], (errCount, rowCount) => {
+                                if (errCount) return reject(errCount.message);
+
+                                // VALIDACIÓN DE LÍMITE DE DIRECTOS (RESTICCIÓN RESTABLECIDA)
+                                if (idPadre && rowCount.total >= limiteDirectos) {
+                                    return reject(`El patrocinador (ID: ${idPadre}) ya alcanzó el límite máximo de ${limiteDirectos} directos.`);
+                                }
+
+                                const queryInsert = `
+                                    INSERT INTO afiliados (nombre, apellido, cedula, celular, correo, id_patrocinador, ruta_de_red) 
+                                    VALUES (?, ?, ?, ?, ?, ?, 'temp')
+                                `;
+                                db.run(queryInsert, [nombre, apellido, cedula, celular, correoLimpio, idPadre], function(errInsert) {
+                                    if (errInsert) {
+                                        if (errInsert.message.includes('cedula')) {
+                                            return reject(`Cédula ${cedula} ya registrada.`);
+                                        }
+                                        if (errInsert.message.includes('correo')) {
+                                            return reject(`Correo ${correoLimpio} ya registrado.`);
+                                        }
+                                        return reject(errInsert.message);
+                                    }
+
+                                    const newId = this.lastID;
+                                    const nuevaRuta = idPadre ? `${rutaPadre}${newId}/` : `/${newId}/`;
+
+                                    db.run(`UPDATE afiliados SET ruta_de_red = ? WHERE id = ?`, [nuevaRuta, newId], (errPath) => {
+                                        if (errPath) return reject(errPath.message);
+                                        insertados++;
+                                        resolve();
+                                    });
+                                });
+                            });
+                        };
+
+                        if (!idPatrocinadorLimpio) {
+                            procesarInsercion(null, null);
+                        } else {
+                            db.get(`SELECT id, ruta_de_red FROM afiliados WHERE id = ?`, [idPatrocinadorLimpio], (errP, padre) => {
+                                if (errP) return reject(errP.message);
+                                if (!padre) return reject(`El patrocinador con ID ${idPatrocinadorLimpio} no existe.`);
+                                procesarInsercion(idPatrocinadorLimpio, padre.ruta_de_red);
+                            });
+                        }
+                    });
+                } catch (errorMsg) {
+                    errores.push(`Fila ${i + 2} (${nombre} ${apellido}): ${errorMsg}`);
+                }
+            }
+
+            res.json({
+                message: `Proceso completado. Se importaron ${insertados} afiliados con éxito.`,
+                insertados,
+                errores
+            });
+        })
+        .on('error', (err) => {
+            res.status(500).json({ error: 'Error al procesar el archivo CSV: ' + err.message });
+        });
 };
