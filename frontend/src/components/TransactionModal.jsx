@@ -89,7 +89,7 @@ function TransactionModal({ modalOpen, selectedAfiliado, transData, setTransData
               minLength={4}
               title="La descripción debe tener al menos 4 caracteres."
               placeholder="Ej: Venta de Componentes" 
-              value={transData.descripcion} 
+              value={transData.descripcion || 'Venta'} // <--- Usar el valor por defecto si está vacío
               onChange={(e) => setTransData({ ...transData, descripcion: e.target.value })} 
               style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #d1d5db', backgroundColor: '#f9fafb', fontSize: '14px', boxSizing: 'border-box' }} 
             />

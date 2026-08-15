@@ -141,8 +141,15 @@ function RegisterMemberForm({ formData, setFormData, afiliados = [], onRegister 
               type="text" 
               placeholder="Ej. 1144123456"
               required
+              maxLength={10} // Restringe a máximo 10 caracteres
+              pattern="\d{1,10}" // Solo números, entre 1 y 10 dígitos
+              title="La cédula debe contener solo números y máximo 10 dígitos"
               value={formData.cedula || ''} 
-              onChange={(e) => setFormData({ ...formData, cedula: e.target.value })} 
+              onChange={(e) => {
+                // Limita la entrada a solo números y máximo 10 caracteres
+                const value = e.target.value.replace(/\D/g, '').slice(0, 10);
+                setFormData({ ...formData, cedula: value });
+              }} 
               style={inputStyle}
               onFocus={handleFocus}
               onBlur={handleBlur}
@@ -158,8 +165,16 @@ function RegisterMemberForm({ formData, setFormData, afiliados = [], onRegister 
               type="tel" 
               placeholder="Ej. 3001234567"
               required
+              minLength={10} // Requiere al menos 10 caracteres al enviar
+              maxLength={10} // No permite escribir más de 10 caracteres
+              pattern="\d{10}" // Exige exactamente 10 dígitos numéricos
+              title="El celular debe tener exactamente 10 dígitos numéricos"
               value={formData.celular || ''} 
-              onChange={(e) => setFormData({ ...formData, celular: e.target.value })} 
+              onChange={(e) => {
+                // Limita la entrada a solo números y máximo 10 caracteres
+                const value = e.target.value.replace(/\D/g, '').slice(0, 10);
+                setFormData({ ...formData, celular: value });
+              }} 
               style={inputStyle}
               onFocus={handleFocus}
               onBlur={handleBlur}

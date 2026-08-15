@@ -14,14 +14,27 @@ function MembersTable({ verHistorico, datosHistoricos = [], afiliados = [], onOp
   const listaOriginal = verHistorico ? datosHistoricos : afiliados;
 
   const listaFiltrada = listaOriginal.filter(a => {
-    if (!busqueda.trim()) return true;
-    const q = busqueda.toLowerCase().trim();
-    const nombreCompleto = `${a.nombre || ''} ${a.apellido || ''}`.toLowerCase();
-    const cedula = String(a.cedula || '').toLowerCase();
-    const celular = String(a.celular || '').toLowerCase();
-    const id = String(a.id || '').toLowerCase();
+  if (!busqueda.trim()) return true;
 
-    return nombreCompleto.includes(q) || cedula.includes(q) || celular.includes(q) || id.includes(q);
+  // Función interna para convertir a minúsculas Y quitar tildes
+  const limpiarTexto = (texto) => 
+    String(texto || '')
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "");
+
+  const q = limpiarTexto(busqueda.trim());
+  const nombreCompleto = limpiarTexto(`${a.nombre || ''} ${a.apellido || ''}`);
+  const cedula = limpiarTexto(a.cedula);
+  const celular = limpiarTexto(a.celular);
+  const id = limpiarTexto(a.id);
+
+  return (
+    nombreCompleto.includes(q) || 
+    cedula.includes(q) || 
+    celular.includes(q) || 
+    id.includes(q)
+  );
   });
 
   // Manejadores para el arrastre tipo mano (grab/grabbing)

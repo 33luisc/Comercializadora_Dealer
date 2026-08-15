@@ -1,6 +1,13 @@
 // src/components/NetworkTree.jsx
 import React, { useState, useEffect } from 'react';
 
+// Función helper para limpiar tildes y minúsculas
+const limpiarTexto = (texto) => 
+  String(texto || '')
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+
 // Subcomponente NodoArbol
 function NodoArbol({ miembro, todosLosAfiliados, expandirTodo, coincidenciaIds }) {
   const [abierto, setAbierto] = useState(true);
@@ -116,7 +123,7 @@ function NodoArbol({ miembro, todosLosAfiliados, expandirTodo, coincidenciaIds }
 
           {miembro.celular && (
             <a 
-              href={`https://wa.me/57${miembro.celular.replace(/\D/g, '')}`} 
+              href={`https://wa.me/57${String(miembro.celular).replace(/\D/g, '')}`} 
               target="_blank" 
               rel="noopener noreferrer"
               style={{ color: '#2563eb', textDecoration: 'none', fontWeight: '500' }}
@@ -185,16 +192,16 @@ function NetworkTree({ afiliados = [] }) {
     }
   };
 
-  // 1. Identificar afiliados que coinciden directamente con la consulta
+  // 1. Identificar afiliados que coinciden directamente con la consulta (Sin tildes ni mayúsculas)
   const coincidenciaIds = new Set();
-  const q = filtro.toLowerCase().trim();
+  const q = limpiarTexto(filtro.trim());
 
   if (q) {
     afiliados.forEach(a => {
-      const nombreCompleto = `${a.nombre || ''} ${a.apellido || ''}`.toLowerCase();
-      const cedula = String(a.cedula || '').toLowerCase();
-      const celular = String(a.celular || '').toLowerCase();
-      const id = String(a.id || '').toLowerCase();
+      const nombreCompleto = limpiarTexto(`${a.nombre || ''} ${a.apellido || ''}`);
+      const cedula = limpiarTexto(a.cedula);
+      const celular = limpiarTexto(a.celular);
+      const id = limpiarTexto(a.id);
 
       if (nombreCompleto.includes(q) || cedula.includes(q) || celular.includes(q) || id.includes(q)) {
         coincidenciaIds.add(a.id);
@@ -202,19 +209,25 @@ function NetworkTree({ afiliados = [] }) {
     });
   }
 
-  // 2. Construir la lista con los nodos coincidentes y todos sus ancestros para mantener la estructura visual del árbol
+  // 2. Construir el conjunto de IDs visibles: ÚNICAMENTE Padre Directo + Coincidencia + Hijos Directos
   const idsVisibles = new Set(coincidenciaIds);
+
   if (q) {
-    coincidenciaIds.forEach(id => {
-      let actual = afiliados.find(a => Number(a.id) === Number(id));
-      while (actual && actual.id_patrocinador) {
-        const padre = afiliados.find(a => Number(a.id) === Number(actual.id_patrocinador));
-        if (padre) {
-          idsVisibles.add(padre.id);
-          actual = padre;
-        } else {
-          break;
+    coincidenciaIds.forEach(idEncontrado => {
+      const miembroActual = afiliados.find(a => Number(a.id) === Number(idEncontrado));
+
+      if (miembroActual) {
+        // A. Agregar a su PADRE DIRECTO (si existe)
+        if (miembroActual.id_patrocinador) {
+          const padreDirecto = afiliados.find(a => Number(a.id) === Number(miembroActual.id_patrocinador));
+          if (padreDirecto) {
+            idsVisibles.add(padreDirecto.id);
+          }
         }
+
+        // B. Agregar a sus HIJOS DIRECTOS
+        const hijosDirectos = afiliados.filter(a => Number(a.id_patrocinador) === Number(miembroActual.id));
+        hijosDirectos.forEach(hijo => idsVisibles.add(hijo.id));
       }
     });
   }
@@ -224,7 +237,7 @@ function NetworkTree({ afiliados = [] }) {
     ? afiliados.filter(a => idsVisibles.has(a.id))
     : afiliados;
 
-  // Identificar los líderes raíz visibles (sin patrocinador o cuyo patrocinador no forma parte del filtro)
+  // Identificar las raíces a renderizar
   const raices = afiliadosVisibles.filter(a => 
     !a.id_patrocinador || 
     Number(a.id_patrocinador) === 0 || 
