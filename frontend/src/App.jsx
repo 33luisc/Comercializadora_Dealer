@@ -4,7 +4,7 @@ import NotificationToasts from './components/NotificationToasts';
 import RegisterMemberForm from './components/RegisterMemberForm';
 import TransactionModal from './components/TransactionModal';
 import LogModal from './components/LogModal';
-import ModalDetalleComision from './components/ModalDetalleComision'; // 👈 1. IMPORTADO
+import ModalDetalleComision from './components/ModalDetalleComision';
 import MembersTable from './components/MembersTable';
 import NetworkTree from './components/NetworkTree';
 import DashboardControls from './components/DashboardControls';
@@ -31,7 +31,7 @@ function App() {
   const [adminUser, setAdminUser] = useState(null);
   const [cargandoSesion, setCargandoSesion] = useState(true);
 
-  // 👈 2. NUEVO ESTADO PARA EL MODAL DE COMISIONES
+  // Estado para el modal de comisiones
   const [usuarioComisionSeleccionado, setUsuarioComisionSeleccionado] = useState(null);
 
   // 1. Cargar sesión activa usando sessionStorage
@@ -195,10 +195,13 @@ function App() {
                   onOpenBitacora={cargarBitacoraAfiliado} 
                   onDelete={handleDelete}
                   onOpenTransaccion={(a) => { setSelectedAfiliado(a); setModalOpen(true); }}
-                  onOpenDetalleComision={(a) => setUsuarioComisionSeleccionado(a)} // 👈 3. PROP PASADA A MEMBERS TABLE
+                  onOpenDetalleComision={(a) => setUsuarioComisionSeleccionado(a)}
                 />
               ) : (
-                <NetworkTree afiliados={afiliados} />
+                <NetworkTree 
+                  afiliados={afiliados} 
+                  onOpenDetalleComision={(a) => setUsuarioComisionSeleccionado(a)} 
+                />
               )}
             </div>
 
@@ -223,7 +226,7 @@ function App() {
         onClose={() => { setVerBitacora(false); setAfiliadoSeleccionadoBitacora(null); }}
       />
 
-      {/* 👈 4. MODAL DE DESGLOSE DE COMISIONES RENDERIZADO */}
+      {/* MODAL DE DESGLOSE DE COMISIONES RENDERIZADO */}
       <ModalDetalleComision 
         usuario={usuarioComisionSeleccionado}
         onClose={() => setUsuarioComisionSeleccionado(null)}
