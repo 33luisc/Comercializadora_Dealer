@@ -1,3 +1,4 @@
+// src/App.jsx
 import { useState, useEffect } from 'react';
 import { useDashboardData } from './hooks/useDashboardData';
 import NotificationToasts from './components/NotificationToasts';
@@ -19,7 +20,8 @@ function App() {
     modalOpen, setModalOpen, selectedAfiliado, setSelectedAfiliado, transData, setTransData,
     verHistorico, setVerHistorico, datosHistoricos,
     verBitacora, setVerBitacora, afiliadoSeleccionadoBitacora, setAfiliadoSeleccionadoBitacora, listaTransacciones,
-    cargarDatos, cargarPeriodoHistorico, handleRegisterAfiliado, handleAddTransaccion, handleCierreMes, handleDelete, cargarBitacoraAfiliado
+    cargarDatos, cargarPeriodoHistorico, handleRegisterAfiliado, handleAddTransaccion, handleCierreMes, handleDelete, cargarBitacoraAfiliado,
+    handleUpdateAfiliado // 👈 1. Extraemos la función del hook
   } = useDashboardData();
 
   const [formData, setFormData] = useState({
@@ -27,7 +29,7 @@ function App() {
   });
 
   // Estados de vista y autenticación
-  const [vistaActiva, setVistaActiva] = useState('tabla'); // 'tabla' | 'arbol' | 'config'
+  const [vistaActiva, setVistaActiva] = useState('tabla'); 
   const [adminUser, setAdminUser] = useState(null);
   const [cargandoSesion, setCargandoSesion] = useState(true);
 
@@ -52,9 +54,7 @@ function App() {
   // 2. Heartbeat para indicar al Backend que la pestaña del navegador sigue abierta
   useEffect(() => {
     const interval = setInterval(() => {
-      fetch('http://localhost:4000/api/ping').catch(() => {
-        // Silenciar errores si el backend no responde
-      });
+      fetch('http://localhost:4000/api/ping').catch(() => {});
     }, 2000);
 
     return () => clearInterval(interval);
@@ -77,7 +77,7 @@ function App() {
     );
   }
 
-  // 2. BLOQUEO DE SEGURIDAD: Si no hay usuario autenticado, renderizar ÚNICAMENTE el Login
+  // 2. BLOQUEO DE SEGURIDAD
   if (!adminUser) {
     return (
       <div className="min-h-screen bg-gray-50/50 flex flex-col justify-center items-center font-sans">
@@ -121,7 +121,7 @@ function App() {
       {/* CUERPO PRINCIPAL */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
-        {/* NAVEGACIÓN Y CONTROLES DEL DASHBOARD (Solo visible en Tabla o Árbol) */}
+        {/* NAVEGACIÓN Y CONTROLES DEL DASHBOARD */}
         {vistaActiva !== 'config' && (
           <DashboardControls 
             rentabilidad={rentabilidad} 
@@ -196,6 +196,7 @@ function App() {
                   onDelete={handleDelete}
                   onOpenTransaccion={(a) => { setSelectedAfiliado(a); setModalOpen(true); }}
                   onOpenDetalleComision={(a) => setUsuarioComisionSeleccionado(a)}
+                  onSaveEdit={handleUpdateAfiliado} // 👈 2. Conectamos la prop con el handler
                 />
               ) : (
                 <NetworkTree 
@@ -226,7 +227,6 @@ function App() {
         onClose={() => { setVerBitacora(false); setAfiliadoSeleccionadoBitacora(null); }}
       />
 
-      {/* MODAL DE DESGLOSE DE COMISIONES RENDERIZADO */}
       <ModalDetalleComision 
         usuario={usuarioComisionSeleccionado}
         onClose={() => setUsuarioComisionSeleccionado(null)}

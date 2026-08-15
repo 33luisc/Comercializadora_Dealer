@@ -1,5 +1,6 @@
 // src/components/MembersTable.jsx
 import React, { useState, useRef } from 'react';
+import ModificarAfiliado from './ModificarAfiliado';
 
 function MembersTable({ 
   verHistorico, 
@@ -8,10 +9,14 @@ function MembersTable({
   onOpenBitacora, 
   onOpenTransaccion, 
   onOpenDetalleComision, 
-  onDelete 
+  onDelete,
+  onSaveEdit // Callback para guardar los cambios del afiliado en el backend/estado global
 }) {
   const [busqueda, setBusqueda] = useState('');
   const [hoveredRow, setHoveredRow] = useState(null);
+  
+  // Guardará el objeto del afiliado seleccionado para abrir el modal ModificarAfiliado
+  const [afiliadoAEditar, setAfiliadoAEditar] = useState(null);
 
   const tableContainerRef = useRef(null);
   const [isMouseDown, setIsMouseDown] = useState(false);
@@ -44,7 +49,7 @@ function MembersTable({
   });
 
   const handleMouseDown = (e) => {
-    if (['BUTTON', 'A', 'INPUT', 'SPAN', 'SVG', 'PATH'].includes(e.target.tagName)) return;
+    if (['BUTTON', 'A', 'INPUT', 'SPAN', 'SVG', 'PATH', 'SELECT'].includes(e.target.tagName)) return;
     setIsMouseDown(true);
     setStartX(e.pageX - tableContainerRef.current.offsetLeft);
     setScrollLeft(tableContainerRef.current.scrollLeft);
@@ -61,6 +66,19 @@ function MembersTable({
     tableContainerRef.current.scrollLeft = scrollLeft - walk;
   };
 
+  // Abre el modal asignando el afiliado
+  const handleStartEdit = (afiliado) => {
+    setAfiliadoAEditar(afiliado);
+  };
+
+  // Maneja el guardado cuando ModificarAfiliado emite los nuevos datos
+  const handleSaveFromModal = (datosActualizados) => {
+    if (onSaveEdit) {
+      onSaveEdit(datosActualizados);
+    }
+    setAfiliadoAEditar(null);
+  };
+
   return (
     <div style={{ 
       backgroundColor: '#ffffff', 
@@ -68,7 +86,8 @@ function MembersTable({
       padding: '24px',
       fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
       width: '100%',
-      boxSizing: 'border-box'
+      boxSizing: 'border-box',
+      position: 'relative'
     }}>
       {/* Barra de Búsqueda y Contador */}
       <div style={{ 
@@ -202,11 +221,52 @@ function MembersTable({
                       </span>
                     </td>
 
-                    {/* Nombre y Apellido */}
+                    {/* Nombre y Apellido (Botón para Editar) */}
                     <td style={{ padding: '12px' }}>
-                      <span style={{ fontWeight: '600', color: '#0f172a', whiteSpace: 'nowrap' }}>
-                        {a.nombre} {a.apellido || ''}
-                      </span>
+                      <button
+                        type="button"
+                        onClick={() => handleStartEdit(a)}
+                        title="Hacer clic para editar afiliado"
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          padding: '4px 8px',
+                          margin: '-4px -8px',
+                          borderRadius: '6px',
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          textAlign: 'left',
+                          fontFamily: 'inherit',
+                          transition: 'background-color 0.2s, color 0.2s'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.backgroundColor = '#eff6ff';
+                          const icon = e.currentTarget.querySelector('.edit-icon');
+                          if (icon) icon.style.opacity = '1';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.backgroundColor = 'transparent';
+                          const icon = e.currentTarget.querySelector('.edit-icon');
+                          if (icon) icon.style.opacity = '0.4';
+                        }}
+                      >
+                        <span style={{ fontWeight: '600', color: '#0f172a', whiteSpace: 'nowrap' }}>
+                          {a.nombre} {a.apellido || ''}
+                        </span>
+                        <span 
+                          className="edit-icon"
+                          style={{ 
+                            fontSize: '13px', 
+                            opacity: 0.4, 
+                            transition: 'opacity 0.2s',
+                            color: '#2563eb' 
+                          }}
+                        >
+                          ✏️
+                        </span>
+                      </button>
                     </td>
 
                     {/* Celular con Icono */}
@@ -424,6 +484,16 @@ function MembersTable({
           </tbody>
         </table>
       </div>
+
+      {/* Invocación externa del componente ModificarAfiliado */}
+      {afiliadoAEditar && (
+        <ModificarAfiliado
+          afiliado={afiliadoAEditar}
+          afiliados={afiliados} // Se pasan todos los afiliados para cargar el dropdown del patrocinador
+          onClose={() => setAfiliadoAEditar(null)}
+          onSave={handleSaveFromModal}
+        />
+      )}
     </div>
   );
 }

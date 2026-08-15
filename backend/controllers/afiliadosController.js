@@ -294,3 +294,115 @@ exports.importarAfiliadosCSV = async (req, res) => {
             res.status(500).json({ error: 'Error al procesar el archivo CSV: ' + err.message });
         });
 };
+
+exports.actualizarAfiliado = async (req, res) => {
+    const { id } = req.params;
+    const { nombre, apellido, cedula, celular, correo, id_patrocinador } = req.body;
+
+    // 1. Validaciones básicas de campos obligatorios
+    if (!nombre || nombre.trim() === '') return res.status(400).json({ error: 'El nombre es obligatorio.' });
+    if (!apellido || apellido.trim() === '') return res.status(400).json({ error: 'El apellido es obligatorio.' });
+    if (!cedula || cedula.trim() === '') return res.status(400).json({ error: 'La cédula es obligatoria.' });
+    if (!celular || celular.trim() === '') return res.status(400).json({ error: 'El celular es obligatorio.' });
+
+    // Limpiar formatos
+    const cedulaLimpia = cedula.replace(/\D/g, '');
+    const celularLimpio = celular.replace(/\D/g, '');
+
+    // Validaciones de longitud
+    if (cedulaLimpia.length === 0 || cedulaLimpia.length > 10) {
+        return res.status(400).json({ error: 'La cédula debe contener solo números y tener máximo 10 dígitos.' });
+    }
+    if (celularLimpio.length !== 10) {
+        return res.status(400).json({ error: 'El celular debe tener exactamente 10 dígitos.' });
+    }
+
+    const correoLimpio = (correo && correo.trim() !== '') ? correo.trim() : null;
+    const nuevoPatrocinadorId = id_patrocinador ? parseInt(id_patrocinador) : null;
+    const afiliadoId = parseInt(id);
+
+    // Evitar que un afiliado sea patrocinador de sí mismo
+    if (nuevoPatrocinadorId === afiliadoId) {
+        return res.status(400).json({ error: 'Un afiliado no puede ser su propio patrocinador.' });
+    }
+
+    // Obtener límite dinámico de directos
+    let limiteDirectos = 15;
+    try {
+        const config = await obtenerConfiguracionCompletaBD();
+        limiteDirectos = config.general.limite_directos_bono;
+    } catch (e) {
+        console.warn("No se pudo cargar límite dinámico en actualización, usando por defecto 15.");
+    }
+
+    // 2. Verificar que el afiliado existe actualmente
+    db.get(`SELECT * FROM afiliados WHERE id = ?`, [afiliadoId], (err, afiliadoActual) => {
+        if (err) return res.status(500).json({ error: err.message });
+        if (!afiliadoActual) return res.status(404).json({ error: 'Afiliado no encontrado.' });
+
+        const cambioPatrocinador = afiliadoActual.id_patrocinador !== nuevoPatrocinadorId;
+
+        const ejecutarActualizacion = (nuevaRutaPadre) => {
+            const nuevaRutaPropia = nuevaRutaPadre ? `${nuevaRutaPadre}${afiliadoId}/` : `/${afiliadoId}/`;
+
+            const queryUpdate = `
+                UPDATE afiliados 
+                SET nombre = ?, apellido = ?, cedula = ?, celular = ?, correo = ?, id_patrocinador = ?, ruta_de_red = ?
+                WHERE id = ?
+            `;
+
+            db.run(queryUpdate, [nombre.trim(), apellido.trim(), cedulaLimpia, celularLimpio, correoLimpio, nuevoPatrocinadorId, nuevaRutaPropia, afiliadoId], function(updateErr) {
+                if (updateErr) {
+                    if (updateErr.message.includes('UNIQUE constraint failed: afiliados.cedula')) {
+                        return res.status(400).json({ error: 'La cédula ingresada ya pertenece a otro afiliado.' });
+                    }
+                    if (updateErr.message.includes('UNIQUE constraint failed: afiliados.correo')) {
+                        return res.status(400).json({ error: 'El correo electrónico ingresado ya pertenece a otro afiliado.' });
+                    }
+                    return res.status(500).json({ error: updateErr.message });
+                }
+
+                // Si cambió de patrocinador, debemos actualizar la ruta_de_red de toda su descendencia
+                if (cambioPatrocinador) {
+                    const rutaAntigua = afiliadoActual.ruta_de_red;
+                    const queryUpdateHijos = `
+                        UPDATE afiliados 
+                        SET ruta_de_red = REPLACE(ruta_de_red, ?, ?) 
+                        WHERE ruta_de_red LIKE ?
+                    `;
+                    db.run(queryUpdateHijos, [rutaAntigua, nuevaRutaPropia, `${rutaAntigua}%`], (errHijos) => {
+                        if (errHijos) return res.status(500).json({ error: 'Error al actualizar las rutas de la descendencia: ' + errHijos.message });
+                        return res.json({ message: 'Afiliado y estructura de red actualizados correctamente.' });
+                    });
+                } else {
+                    return res.json({ message: 'Afiliado actualizado con éxito.' });
+                }
+            });
+        };
+
+        // Si cambió el patrocinador, validamos límite y prevenimos ciclos de jerarquía
+        if (cambioPatrocinador && nuevoPatrocinadorId) {
+            db.get(`SELECT id, ruta_de_red FROM afiliados WHERE id = ?`, [nuevoPatrocinadorId], (errP, nuevoPadre) => {
+                if (errP) return res.status(500).json({ error: errP.message });
+                if (!nuevoPadre) return res.status(400).json({ error: `El patrocinador con ID ${nuevoPatrocinadorId} no existe.` });
+
+                // Prevenir ciclos (No se puede asignar como padre a alguien de su propia descendencia)
+                if (nuevoPadre.ruta_de_red.startsWith(afiliadoActual.ruta_de_red)) {
+                    return res.status(400).json({ error: 'No puedes asignar como patrocinador a un afiliado que pertenece a su propia descendencia.' });
+                }
+
+                // Validar cupo de directos del nuevo patrocinador
+                db.get(`SELECT COUNT(*) as total FROM afiliados WHERE id_patrocinador = ?`, [nuevoPatrocinadorId], (errC, rowC) => {
+                    if (errC) return res.status(500).json({ error: errC.message });
+                    if (rowC.total >= limiteDirectos) {
+                        return res.status(400).json({ error: `El nuevo patrocinador (ID: ${nuevoPatrocinadorId}) ya alcanzó el límite máximo de ${limiteDirectos} directos.` });
+                    }
+
+                    ejecutarActualizacion(nuevoPadre.ruta_de_red);
+                });
+            });
+        } else {
+            ejecutarActualizacion(nuevoPatrocinadorId ? afiliadoActual.ruta_de_red.replace(`${afiliadoId}/`, '') : null);
+        }
+    });
+};

@@ -11,6 +11,7 @@ router.get('/buscar', afiliadosController.buscarAfiliados);
 router.get('/:id', afiliadosController.obtenerAfiliadoPorId);
 router.post('/', afiliadosController.registrarAfiliado);
 router.delete('/:id', afiliadosController.eliminarAfiliado);
+router.put('/:id', afiliadosController.actualizarAfiliado);
 
 // Nueva ruta de importación masiva
 router.post('/importar-csv', upload.single('file'), afiliadosController.importarAfiliadosCSV);

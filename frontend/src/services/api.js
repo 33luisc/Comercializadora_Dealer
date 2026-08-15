@@ -13,7 +13,6 @@ export const apiService = {
     };
   },
 
-  // 👈 Recibe todo el objeto formData con los nuevos campos obligatorios y opcionales
   async registrarAfiliado(formData) {
     const res = await fetch(`${API_BASE}/afiliados`, {
       method: 'POST',
@@ -28,7 +27,38 @@ export const apiService = {
       })
     });
     const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Error al registrar.');
+    if (!res.ok) throw new Error(data.error || data.message || 'Error al registrar.');
+    return data;
+  },
+
+  // 👈 NUEVO MÉTODO AGREGADO: Edición / Actualización de afiliado
+  async actualizarAfiliado(id, datosActualizados) {
+    const token = sessionStorage.getItem('adminToken');
+    const headers = {
+      'Content-Type': 'application/json'
+    };
+
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    const res = await fetch(`${API_BASE}/afiliados/${id}`, {
+      method: 'PUT',
+      headers,
+      body: JSON.stringify({
+        nombre: datosActualizados.nombre,
+        apellido: datosActualizados.apellido,
+        cedula: datosActualizados.cedula,
+        celular: datosActualizados.celular,
+        correo: datosActualizados.correo || null,
+        id_patrocinador: datosActualizados.id_patrocinador ? parseInt(datosActualizados.id_patrocinador) : null
+      })
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error || data.message || 'Error al actualizar el afiliado.');
+    }
     return data;
   },
 
@@ -40,7 +70,7 @@ export const apiService = {
     });
     if (!res.ok) {
       const data = await res.json();
-      throw new Error(data.error || 'Error en la transacción.');
+      throw new Error(data.error || data.message || 'Error en la transacción.');
     }
   },
 
@@ -51,7 +81,7 @@ export const apiService = {
       body: JSON.stringify({ periodo })
     });
     const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Error en el cierre.');
+    if (!res.ok) throw new Error(data.error || data.message || 'Error en el cierre.');
     return data;
   },
 
@@ -59,21 +89,21 @@ export const apiService = {
     const res = await fetch(`${API_BASE}/afiliados/${id}`, { method: 'DELETE' });
     if (!res.ok) {
       const data = await res.json();
-      throw new Error(data.error || 'Error al eliminar.');
+      throw new Error(data.error || data.message || 'Error al eliminar.');
     }
   },
 
   async consultarHistorico(periodo) {
     const res = await fetch(`${API_BASE}/historico/${periodo}`);
     const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Error al cargar histórico.');
+    if (!res.ok) throw new Error(data.error || data.message || 'Error al cargar histórico.');
     return data;
   },
 
   async consultarTransacciones(idAfiliado) {
     const res = await fetch(`${API_BASE}/transacciones/${idAfiliado}`);
     const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Error al cargar bitácora.');
+    if (!res.ok) throw new Error(data.error || data.message || 'Error al cargar bitácora.');
     return data;
   }
 };

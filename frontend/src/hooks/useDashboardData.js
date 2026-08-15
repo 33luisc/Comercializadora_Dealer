@@ -1,6 +1,6 @@
 // src/hooks/useDashboardData.js
 import { useState, useEffect } from 'react';
-import { apiService } from '../services/api'; // Asegúrate de que la ruta a tu apiService sea correcta
+import { apiService } from '../services/api';
 
 export function useDashboardData() {
   // Estados de datos primarios
@@ -76,12 +76,10 @@ export function useDashboardData() {
     e.preventDefault();
     setErrorMsg(''); setSuccessMsg('');
     try {
-      // 👈 Pasamos el objeto completo formData (o todos los parámetros) a apiService
       await apiService.registrarAfiliado(formData);
       
       setSuccessMsg(`Afiliado "${formData.nombre} ${formData.apellido}" registrado con éxito.`);
       
-      // 👈 Reseteamos todos los campos en el formulario
       setFormData({
         nombre: '',
         apellido: '',
@@ -95,6 +93,17 @@ export function useDashboardData() {
     } catch (error) {
       setErrorMsg(error.message);
     }
+  };
+
+  const handleUpdateAfiliado = async (datosActualizados) => {
+  setErrorMsg(''); setSuccessMsg('');
+  try {
+    await apiService.actualizarAfiliado(datosActualizados.id, datosActualizados);
+    setSuccessMsg('Afiliado actualizado correctamente.');
+    cargarDatos();
+  } catch (error) {
+    setErrorMsg(error.message);
+  }
   };
 
   const handleAddTransaccion = async (e) => {
@@ -148,7 +157,6 @@ export function useDashboardData() {
     }
   };
 
-  // Exportamos todo listo para ser usado por el componente App
   return {
     afiliados,
     rentabilidad,
@@ -175,6 +183,7 @@ export function useDashboardData() {
     cargarDatos,
     cargarPeriodoHistorico,
     handleRegisterAfiliado,
+    handleUpdateAfiliado,
     handleAddTransaccion,
     handleCierreMes,
     handleDelete,
