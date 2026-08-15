@@ -163,20 +163,18 @@ exports.importarAfiliadosCSV = async (req, res) => {
     const filePath = req.file.path;
     const registros = [];
 
-    // 2. Leer con codificación 'utf-8' para preservar tildes y eñes
+    // 2. Leer con codificación 'utf-8' para tildes y eñes
     fs.createReadStream(filePath, { encoding: 'utf-8' })
         .pipe(csv())
         .on('data', (row) => {
             const filaLimpia = {};
             for (let key in row) {
-                // Eliminar posibles caracteres invisibles BOM de UTF-8 en las cabeceras
                 const claveLimpia = key.replace(/^\uFEFF/, '').trim();
                 filaLimpia[claveLimpia] = row[key] ? row[key].trim() : '';
             }
             registros.push(filaLimpia);
         })
         .on('end', async () => {
-            // Eliminar el archivo temporal creado por multer
             if (fs.existsSync(filePath)) {
                 fs.unlinkSync(filePath);
             }
@@ -188,13 +186,39 @@ exports.importarAfiliadosCSV = async (req, res) => {
             let insertados = 0;
             let errores = [];
 
-            // 3. Procesar registros respetando el límite de la red MLM
+            // Conjunto para rastrear cédulas procesadas dentro del mismo archivo CSV
+            const cedulasProcesadasEnCSV = new Set();
+
+            // 3. Procesar registros
             for (let i = 0; i < registros.length; i++) {
                 const fila = registros[i];
                 const { nombre, apellido, cedula, celular, correo, id_patrocinador } = fila;
 
+                // A. Campos obligatorios
                 if (!nombre || !apellido || !cedula || !celular) {
                     errores.push(`Fila ${i + 2}: Campos obligatorios faltantes (nombre, apellido, cédula, celular).`);
+                    continue;
+                }
+
+                // Limpiar caracteres no numéricos
+                const cedulaLimpia = cedula.replace(/\D/g, '');
+                const celularLimpio = celular.replace(/\D/g, '');
+
+                // B. Validación de Cédula (máximo 10 dígitos)
+                if (cedulaLimpia.length === 0 || cedulaLimpia.length > 10) {
+                    errores.push(`Fila ${i + 2} (${nombre} ${apellido}): La cédula debe contener solo números y tener máximo 10 dígitos (Ingresado: "${cedula}").`);
+                    continue;
+                }
+
+                // C. Validación de Cédula duplicada dentro del mismo archivo CSV
+                if (cedulasProcesadasEnCSV.has(cedulaLimpia)) {
+                    errores.push(`Fila ${i + 2} (${nombre} ${apellido}): La cédula ${cedulaLimpia} está repetida más de una vez dentro del mismo archivo CSV.`);
+                    continue;
+                }
+
+                // D. Validación de Celular (exactamente 10 dígitos)
+                if (celularLimpio.length !== 10) {
+                    errores.push(`Fila ${i + 2} (${nombre} ${apellido}): El número de celular debe tener exactamente 10 dígitos (Ingresado: "${celular}").`);
                     continue;
                 }
 
@@ -204,12 +228,12 @@ exports.importarAfiliadosCSV = async (req, res) => {
                 try {
                     await new Promise((resolve, reject) => {
                         const procesarInsercion = (idPadre, rutaPadre) => {
-                            // Validar cuántos afiliados directos tiene el patrocinador actualmente
+                            // Validar la cantidad de directos del patrocinador
                             const queryCount = `SELECT COUNT(*) as total FROM afiliados WHERE id_patrocinador = ?`;
                             db.get(queryCount, [idPadre], (errCount, rowCount) => {
                                 if (errCount) return reject(errCount.message);
 
-                                // VALIDACIÓN DE LÍMITE DE DIRECTOS (RESTICCIÓN RESTABLECIDA)
+                                // Validación de Límite de Directos
                                 if (idPadre && rowCount.total >= limiteDirectos) {
                                     return reject(`El patrocinador (ID: ${idPadre}) ya alcanzó el límite máximo de ${limiteDirectos} directos.`);
                                 }
@@ -218,13 +242,14 @@ exports.importarAfiliadosCSV = async (req, res) => {
                                     INSERT INTO afiliados (nombre, apellido, cedula, celular, correo, id_patrocinador, ruta_de_red) 
                                     VALUES (?, ?, ?, ?, ?, ?, 'temp')
                                 `;
-                                db.run(queryInsert, [nombre, apellido, cedula, celular, correoLimpio, idPadre], function(errInsert) {
+                                db.run(queryInsert, [nombre, apellido, cedulaLimpia, celularLimpio, correoLimpio, idPadre], function(errInsert) {
                                     if (errInsert) {
+                                        // Detección de duplicado por restricción de Base de Datos
                                         if (errInsert.message.includes('cedula')) {
-                                            return reject(`Cédula ${cedula} ya registrada.`);
+                                            return reject(`Cédula ${cedulaLimpia} ya se encuentra registrada en la base de datos.`);
                                         }
                                         if (errInsert.message.includes('correo')) {
-                                            return reject(`Correo ${correoLimpio} ya registrado.`);
+                                            return reject(`Correo ${correoLimpio} ya se encuentra registrado en la base de datos.`);
                                         }
                                         return reject(errInsert.message);
                                     }
@@ -234,6 +259,9 @@ exports.importarAfiliadosCSV = async (req, res) => {
 
                                     db.run(`UPDATE afiliados SET ruta_de_red = ? WHERE id = ?`, [nuevaRuta, newId], (errPath) => {
                                         if (errPath) return reject(errPath.message);
+                                        
+                                        // Registrar cédula como procesada con éxito
+                                        cedulasProcesadasEnCSV.add(cedulaLimpia);
                                         insertados++;
                                         resolve();
                                     });
