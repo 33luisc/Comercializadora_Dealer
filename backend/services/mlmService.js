@@ -49,6 +49,14 @@ function procesarCalculosMLMDinamico(afiliados, config) {
         const utilidadDescendentes = descendientes.reduce((suma, sub) => suma + (Number(sub.utilidad_propia) || 0), 0);
         usuario.utilidad_total_calificacion = (Number(usuario.utilidad_propia) || 0) + utilidadDescendentes;
 
+        // A. Personas en su red descendiente que han realizado compras (utilidad_propia > 0)
+        usuario.compradores_en_red = descendientes.filter(sub => (Number(sub.utilidad_propia) || 0) > 0).length;
+
+        // B. Cupos libres para completar 15 afiliados directos
+        const directos = afiliados.filter(sub => Number(sub.id_patrocinador) === Number(usuario.id));
+        const limiteDirectos = general.limite_directos_bono || 15;
+        usuario.cupos_libres = Math.max(0, limiteDirectos - directos.length);
+
         if ((Number(usuario.utilidad_propia) || 0) >= general.compra_minima_activacion) {
             usuario.estado = "Activo";
             usuario.nivel = calcularNivelDinamico(usuario.utilidad_total_calificacion);

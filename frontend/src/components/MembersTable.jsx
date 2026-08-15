@@ -133,13 +133,14 @@ function MembersTable({ verHistorico, datosHistoricos = [], afiliados = [], onOp
             <tr style={{ backgroundColor: '#f8fafc', color: '#475569', textTransform: 'uppercase', fontSize: '11px', letterSpacing: '0.05em' }}>
               <th style={{ padding: '12px 10px', textAlign: 'center', fontWeight: '700', borderBottom: '1px solid #e2e8f0' }}>ID</th>
               <th style={{ padding: '12px 10px', fontWeight: '700', borderBottom: '1px solid #e2e8f0' }}>Nombre y Apellido</th>
-              <th style={{ padding: '12px 10px', fontWeight: '700', borderBottom: '1px solid #e2e8f0' }}>Cédula</th>
               <th style={{ padding: '12px 10px', fontWeight: '700', borderBottom: '1px solid #e2e8f0' }}>Celular</th>
               <th style={{ padding: '12px 10px', fontWeight: '700', borderBottom: '1px solid #e2e8f0' }}>Patrocinador</th>
+              <th style={{ padding: '12px 10px', textAlign: 'center', fontWeight: '700', borderBottom: '1px solid #e2e8f0' }}>Cupos Libres</th>
+              <th style={{ padding: '12px 10px', textAlign: 'center', fontWeight: '700', borderBottom: '1px solid #e2e8f0' }}>Compradores</th>
               <th style={{ padding: '12px 10px', textAlign: 'center', fontWeight: '700', borderBottom: '1px solid #e2e8f0' }}>Estado</th>
               <th style={{ padding: '12px 10px', textAlign: 'center', fontWeight: '700', borderBottom: '1px solid #e2e8f0' }}>Nivel</th>
               <th style={{ padding: '12px 10px', textAlign: 'right', fontWeight: '700', borderBottom: '1px solid #e2e8f0' }}>U. Acumulada</th>
-              <th style={{ padding: '12px 10px', textAlign: 'right', fontWeight: '700', borderBottom: '1px solid #e2e8f0' }}>Total Com.</th>
+              <th style={{ padding: '12px 10px', textAlign: 'center', fontWeight: '700', borderBottom: '1px solid #e2e8f0' }}>Total</th>
               <th style={{ padding: '12px 10px', textAlign: 'center', fontWeight: '700', borderBottom: '1px solid #e2e8f0' }}>Acciones</th>
             </tr>
           </thead>
@@ -193,41 +194,8 @@ function MembersTable({ verHistorico, datosHistoricos = [], afiliados = [], onOp
                       }}>
                         <span style={{ fontWeight: '700', color: '#0f172a', whiteSpace: 'nowrap' }}>
                           {a.nombre} {a.apellido || ''}
-                        </span>
-
-                        {!verHistorico && (
-                          <button 
-                            type="button" 
-                            onClick={() => onOpenBitacora(a)} 
-                            style={{ 
-                              cursor: 'pointer', 
-                              background: '#eff6ff', 
-                              border: '1px solid #bfdbfe', 
-                              color: '#1d4ed8',
-                              borderRadius: '6px', 
-                              padding: '3px 6px',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              flexShrink: 0,
-                              transition: 'all 0.2s',
-                              opacity: isHovered ? 1 : 0.7
-                            }}
-                            title="Ver Bitácora de Transacciones"
-                          >
-                            <span style={{ fontSize: '13px' }}>📖</span>
-                          </button>
-                        )}
+                        </span>              
                       </div>
-                    </td>
-
-                    {/* Cédula */}
-                    <td style={{ padding: '10px', color: '#64748b', fontSize: '12px', whiteSpace: 'nowrap' }}>
-                      {a.cedula ? (
-                        <span>🆔 {Number(a.cedula).toLocaleString('es-CO')}</span>
-                      ) : (
-                        <span style={{ color: '#cbd5e1' }}>N/A</span>
-                      )}
                     </td>
 
                     {/* Celular */}
@@ -252,6 +220,36 @@ function MembersTable({ verHistorico, datosHistoricos = [], afiliados = [], onOp
                       {verHistorico ? 'N/A' : (a.nombre_patrocinador || <span style={{ backgroundColor: '#f1f5f9', padding: '2px 6px', borderRadius: '4px', fontWeight: '600', color: '#64748b' }}>Raíz</span>)}
                     </td>
 
+                    {/* Personas que aún te hacen falta para llegar a 15 afiliados */}
+                    <td style={{ padding: '10px', color: '#0f172a', fontSize: '12px', whiteSpace: 'nowrap' }}>
+                      <span style={{ 
+                        // Ámbar si le quedan cupos libres, Azul suave si ya completó los 15 (0 cupos libres)
+                        backgroundColor: (a.cupos_libres ?? 15) > 0 ? '#fef3c7' : '#e0f2fe', 
+                        color: (a.cupos_libres ?? 15) > 0 ? '#b45309' : '#0369a1', 
+                        padding: '4px 8px', 
+                        borderRadius: '6px', 
+                        fontWeight: '600' 
+                      }}>
+                        {(a.cupos_libres ?? 15) > 0 
+                          ? `🎯 ${a.cupos_libres ?? 15} cupos` 
+                          : '✅ Red completa'}
+                      </span>
+                    </td>
+
+                    {/* Personas de tu red que han comprado */}
+                    <td style={{ padding: '10px', color: '#0f172a', fontSize: '12px', whiteSpace: 'nowrap' }}>
+                      <span style={{ 
+                        // Verde si tiene al menos 1 comprador, Gris/Rojo suave si no tiene ninguno
+                        backgroundColor: (a.compradores_en_red || 0) > 0 ? '#dcfce7' : '#f1f5f9', 
+                        color: (a.compradores_en_red || 0) > 0 ? '#15803d' : '#64748b', 
+                        padding: '4px 8px', 
+                        borderRadius: '6px', 
+                        fontWeight: '600' 
+                      }}>
+                        🛒 {a.compradores_en_red || 0} compradores
+                      </span>
+                    </td>
+
                     {/* Estado */}
                     <td style={{ padding: '10px', textAlign: 'center', whiteSpace: 'nowrap' }}>
                       <span style={{
@@ -268,7 +266,7 @@ function MembersTable({ verHistorico, datosHistoricos = [], afiliados = [], onOp
 
                     {/* Nivel */}
                     <td style={{ padding: '10px', textAlign: 'center', whiteSpace: 'nowrap' }}>
-                      <span style={{ backgroundColor: '#eff6ff', color: '#1d4ed8', padding: '3px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: '700' }}>
+                      <span style={{ backgroundColor: '#eff6ff', color: '#000000', padding: '3px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: '700' }}>
                         Nivel {a.nivel}
                       </span>
                     </td>
@@ -276,9 +274,31 @@ function MembersTable({ verHistorico, datosHistoricos = [], afiliados = [], onOp
                     {/* U. Acumulada */}
                     <td style={{ padding: '10px', textAlign: 'right', whiteSpace: 'nowrap' }}>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '6px' }}>
-                        <span style={{ fontWeight: '600', color: (a.utilidad_propia || 0) >= 0 ? '#1e293b' : '#dc2626' }}>
-                          ${Number(a.utilidad_propia || 0).toLocaleString('es-CO')}
-                        </span>
+                        <button
+                        type="button"
+                        onClick={() => !verHistorico && onOpenBitacora(a)}
+                        disabled={verHistorico}
+                        title={verHistorico ? '' : 'Ver Bitácora de Transacciones'}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          padding: 0,
+                          margin: 0,
+                          font: 'inherit',
+                          fontWeight: '600',
+                          // Mantiene el color original según la utilidad (rojo si es negativo)
+                          color: (a.utilidad_propia || 0) >= 0 ? '#277d00' : '#dc2626',
+                          cursor: verHistorico ? 'default' : 'pointer',
+                          textDecoration: verHistorico ? 'none' : 'underline', // Subrayado para indicar interactividad
+                          textDecorationStyle: 'dotted', // Opcional: punteado para diferenciarlo de un link normal
+                          textAlign: 'left',
+                          whiteSpace: 'nowrap',
+                          transition: 'opacity 0.2s',
+                          opacity: isHovered && !verHistorico ? 0.75 : 1
+                        }}
+                      >
+                        ${Number(a.utilidad_propia || 0).toLocaleString('es-CO')}
+                      </button>
                         {!verHistorico && (
                           <button 
                             type="button" 
@@ -301,7 +321,7 @@ function MembersTable({ verHistorico, datosHistoricos = [], afiliados = [], onOp
                     </td>
 
                     {/* Total Comisiones */}
-                    <td style={{ padding: '10px', textAlign: 'right', fontWeight: '700', color: '#2563eb', whiteSpace: 'nowrap' }}>
+                    <td style={{ padding: '10px', textAlign: 'right', fontWeight: '700', color: '#040405', whiteSpace: 'nowrap' }}>
                       ${Number(Math.round(a.comision_total || 0)).toLocaleString('es-CO')}
                     </td>
 
