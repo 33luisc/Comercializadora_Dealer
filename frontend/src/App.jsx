@@ -4,6 +4,7 @@ import NotificationToasts from './components/NotificationToasts';
 import RegisterMemberForm from './components/RegisterMemberForm';
 import TransactionModal from './components/TransactionModal';
 import LogModal from './components/LogModal';
+import ModalDetalleComision from './components/ModalDetalleComision'; // 👈 1. IMPORTADO
 import MembersTable from './components/MembersTable';
 import NetworkTree from './components/NetworkTree';
 import DashboardControls from './components/DashboardControls';
@@ -29,6 +30,9 @@ function App() {
   const [vistaActiva, setVistaActiva] = useState('tabla'); // 'tabla' | 'arbol' | 'config'
   const [adminUser, setAdminUser] = useState(null);
   const [cargandoSesion, setCargandoSesion] = useState(true);
+
+  // 👈 2. NUEVO ESTADO PARA EL MODAL DE COMISIONES
+  const [usuarioComisionSeleccionado, setUsuarioComisionSeleccionado] = useState(null);
 
   // 1. Cargar sesión activa usando sessionStorage
   useEffect(() => {
@@ -137,7 +141,6 @@ function App() {
         {/* VISTA 1: PANEL DE CONFIGURACIÓN DE PARÁMETROS */}
         {vistaActiva === 'config' && (
           <div className="mt-6">
-            {/* Botón para regresar al Dashboard principal */}
             <div className="mb-4">
               <button
                 onClick={() => setVistaActiva('tabla')}
@@ -192,6 +195,7 @@ function App() {
                   onOpenBitacora={cargarBitacoraAfiliado} 
                   onDelete={handleDelete}
                   onOpenTransaccion={(a) => { setSelectedAfiliado(a); setModalOpen(true); }}
+                  onOpenDetalleComision={(a) => setUsuarioComisionSeleccionado(a)} // 👈 3. PROP PASADA A MEMBERS TABLE
                 />
               ) : (
                 <NetworkTree afiliados={afiliados} />
@@ -217,6 +221,12 @@ function App() {
         afiliadoSeleccionadoBitacora={afiliadoSeleccionadoBitacora}
         listaTransacciones={listaTransacciones} 
         onClose={() => { setVerBitacora(false); setAfiliadoSeleccionadoBitacora(null); }}
+      />
+
+      {/* 👈 4. MODAL DE DESGLOSE DE COMISIONES RENDERIZADO */}
+      <ModalDetalleComision 
+        usuario={usuarioComisionSeleccionado}
+        onClose={() => setUsuarioComisionSeleccionado(null)}
       />
     </div>
   );

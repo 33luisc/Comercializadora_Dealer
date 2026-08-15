@@ -23,6 +23,7 @@ function procesarCalculosMLMDinamico(afiliados, config) {
         u.comision_por_red = 0;
         u.bono_liderazgo = 0;
         u.comision_total = 0;
+        u.desglose_comisiones = []; // <-- NUEVO: Historial de aportantes
     });
 
     const nivelesOrdenadosDesc = [...niveles].sort((a, b) => b.umbral - a.umbral);
@@ -36,7 +37,7 @@ function procesarCalculosMLMDinamico(afiliados, config) {
     afiliados.forEach(usuario => {
         const patrocinador = mapaUsuarios[usuario.id_patrocinador];
         usuario.nombre_patrocinador = patrocinador
-            ? `${patrocinador.nombre} ${patrocinador.apellido}`
+            ? `${patrocinador.nombre} ${patrocinador.apellido || ''}`
             : 'Ninguno (Raíz)';
 
         const rutaBuscada = usuario.ruta_de_red || '';
@@ -49,10 +50,8 @@ function procesarCalculosMLMDinamico(afiliados, config) {
         const utilidadDescendentes = descendientes.reduce((suma, sub) => suma + (Number(sub.utilidad_propia) || 0), 0);
         usuario.utilidad_total_calificacion = (Number(usuario.utilidad_propia) || 0) + utilidadDescendentes;
 
-        // A. Personas en su red descendiente que han realizado compras (utilidad_propia > 0)
         usuario.compradores_en_red = descendientes.filter(sub => (Number(sub.utilidad_propia) || 0) > 0).length;
 
-        // B. Cupos libres para completar 15 afiliados directos
         const directos = afiliados.filter(sub => Number(sub.id_patrocinador) === Number(usuario.id));
         const limiteDirectos = general.limite_directos_bono || 15;
         usuario.cupos_libres = Math.max(0, limiteDirectos - directos.length);
@@ -68,13 +67,12 @@ function procesarCalculosMLMDinamico(afiliados, config) {
 
     const nivelMaximoExistente = niveles.length > 0 ? Math.max(...niveles.map(n => n.nivel)) : 4;
 
-    // Mapa rápido de configuraciones por nivel
     const mapaConfigNivel = {};
     niveles.forEach(n => {
         mapaConfigNivel[n.nivel] = n;
     });
 
-    // 2. CALCULAR COMISIÓN PROPIA Y DIFERENCIAL DE RED (CORREGIDO)
+    // 2. CALCULAR COMISIÓN PROPIA Y DIFERENCIAL DE RED
     afiliados.forEach(comprador => {
         const utilidadComprador = Number(comprador.utilidad_propia) || 0;
         if (comprador.estado === "Inactivo" || utilidadComprador <= 0) return;
@@ -82,7 +80,18 @@ function procesarCalculosMLMDinamico(afiliados, config) {
         // A. Comisión Propia
         const configNivelComprador = mapaConfigNivel[comprador.nivel];
         const porcentajePropioComprador = configNivelComprador ? (Number(configNivelComprador.porcentaje_propio) || 0) : 0;
-        comprador.comision_propia = utilidadComprador * porcentajePropioComprador;
+        const montoComisionPropia = utilidadComprador * porcentajePropioComprador;
+        
+        comprador.comision_propia = montoComisionPropia;
+        if (montoComisionPropia > 0) {
+            comprador.desglose_comisiones.push({
+                origen_id: comprador.id,
+                nombre_origen: `${comprador.nombre} ${comprador.apellido || ''}`,
+                tipo: 'Compra Propia',
+                porcentaje: (porcentajePropioComprador * 100).toFixed(1) + '%',
+                monto: montoComisionPropia
+            });
+        }
 
         // B. Reparto Ascendente (Up-line) con Diferencial Real
         let porcentajeCobradoAcumulado = porcentajePropioComprador;
@@ -96,13 +105,21 @@ function procesarCalculosMLMDinamico(afiliados, config) {
                 const configPatrocinador = mapaConfigNivel[patrocinador.nivel];
                 const porcentajePatrocinador = configPatrocinador ? (Number(configPatrocinador.porcentaje_propio) || 0) : 0;
 
-                // Solo cobra si el patrocinador tiene un porcentaje propio MAYOR a lo ya repartido
                 if (porcentajePatrocinador > porcentajeCobradoAcumulado) {
                     const factorDiferencial = porcentajePatrocinador - porcentajeCobradoAcumulado;
+                    const montoDiferencial = utilidadComprador * factorDiferencial;
 
-                    patrocinador.comision_por_red += utilidadComprador * factorDiferencial;
+                    patrocinador.comision_por_red += montoDiferencial;
+
+                    // REGISTRO EN EL DESGLOSE DEL PATROCINADOR
+                    patrocinador.desglose_comisiones.push({
+                        origen_id: comprador.id,
+                        nombre_origen: `${comprador.nombre} ${comprador.apellido || ''}`,
+                        tipo: 'Diferencial de Red',
+                        porcentaje: (factorDiferencial * 100).toFixed(1) + '%',
+                        monto: montoDiferencial
+                    });
                     
-                    // Elevamos la barra del porcentaje ya absorbido
                     porcentajeCobradoAcumulado = porcentajePatrocinador;
                 }
             }
@@ -132,24 +149,47 @@ function procesarCalculosMLMDinamico(afiliados, config) {
 
             if (cantidadNivelesMaxDirectos >= 1) {
                 // Parte A: Red de niveles 1, 2 y 3
-                const utilidadNivelesInferiores = descendientes
-                    .filter(desc => desc.nivel >= 1 && desc.nivel < nivelMaximoExistente)
-                    .reduce((suma, desc) => suma + (Number(desc.utilidad_propia) || 0), 0);
+                const descendientesInferiores = descendientes.filter(desc => desc.nivel >= 1 && desc.nivel < nivelMaximoExistente);
 
-                usuario.bono_liderazgo += utilidadNivelesInferiores * factorLiderazgo;
+                descendientesInferiores.forEach(desc => {
+                    const utilidad = Number(desc.utilidad_propia) || 0;
+                    if (utilidad > 0) {
+                        const montoBono = utilidad * factorLiderazgo;
+                        usuario.bono_liderazgo += montoBono;
+                        
+                        usuario.desglose_comisiones.push({
+                            origen_id: desc.id,
+                            nombre_origen: `${desc.nombre} ${desc.apellido || ''}`,
+                            tipo: 'Bono Liderazgo (Red Nivel < Max)',
+                            porcentaje: (factorLiderazgo * 100).toFixed(1) + '%',
+                            monto: montoBono
+                        });
+                    }
+                });
 
                 // Parte B: Directos Nivel 4 en posiciones 3ª, 5ª, 7ª, etc.
                 const limiteDirectos = Math.min(cantidadNivelesMaxDirectos, general.limite_directos_bono || 15);
                 for (let i = 3; i <= limiteDirectos; i += 2) {
                     const directoNivelMax = nivelesMaxDirectos[i - 1];
                     if (directoNivelMax) {
-                        usuario.bono_liderazgo += (Number(directoNivelMax.utilidad_propia) || 0) * factorLiderazgo;
+                        const utilidad = Number(directoNivelMax.utilidad_propia) || 0;
+                        if (utilidad > 0) {
+                            const montoBono = utilidad * factorLiderazgo;
+                            usuario.bono_liderazgo += montoBono;
+
+                            usuario.desglose_comisiones.push({
+                                origen_id: directoNivelMax.id,
+                                nombre_origen: `${directoNivelMax.nombre} ${directoNivelMax.apellido || ''}`,
+                                tipo: `Bono Liderazgo (Directo Nivel Máx pos #${i})`,
+                                porcentaje: (factorLiderazgo * 100).toFixed(1) + '%',
+                                monto: montoBono
+                            });
+                        }
                     }
                 }
             }
         }
 
-        // Consolidador final de comisiones
         usuario.comision_total = usuario.comision_propia + usuario.comision_por_red + usuario.bono_liderazgo;
     });
 

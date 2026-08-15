@@ -1,7 +1,15 @@
 // src/components/MembersTable.jsx
 import React, { useState, useRef } from 'react';
 
-function MembersTable({ verHistorico, datosHistoricos = [], afiliados = [], onOpenBitacora, onOpenTransaccion, onDelete }) {
+function MembersTable({ 
+  verHistorico, 
+  datosHistoricos = [], 
+  afiliados = [], 
+  onOpenBitacora, 
+  onOpenTransaccion, 
+  onOpenDetalleComision, 
+  onDelete 
+}) {
   const [busqueda, setBusqueda] = useState('');
   const [hoveredRow, setHoveredRow] = useState(null);
 
@@ -9,32 +17,32 @@ function MembersTable({ verHistorico, datosHistoricos = [], afiliados = [], onOp
   const tableContainerRef = useRef(null);
   const [isMouseDown, setIsMouseDown] = useState(false);
   const [startX, setStartX] = useState(0);
-  const [scrollLeft, setScrollLeft] = useState(0);
+  const [scrollLeft, setScrollLeft] = useState(0);  
 
   const listaOriginal = verHistorico ? datosHistoricos : afiliados;
 
   const listaFiltrada = listaOriginal.filter(a => {
-  if (!busqueda.trim()) return true;
+    if (!busqueda.trim()) return true;
 
-  // Función interna para convertir a minúsculas Y quitar tildes
-  const limpiarTexto = (texto) => 
-    String(texto || '')
-      .toLowerCase()
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "");
+    // Función interna para convertir a minúsculas Y quitar tildes
+    const limpiarTexto = (texto) => 
+      String(texto || '')
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "");
 
-  const q = limpiarTexto(busqueda.trim());
-  const nombreCompleto = limpiarTexto(`${a.nombre || ''} ${a.apellido || ''}`);
-  const cedula = limpiarTexto(a.cedula);
-  const celular = limpiarTexto(a.celular);
-  const id = limpiarTexto(a.id);
+    const q = limpiarTexto(busqueda.trim());
+    const nombreCompleto = limpiarTexto(`${a.nombre || ''} ${a.apellido || ''}`);
+    const cedula = limpiarTexto(a.cedula);
+    const celular = limpiarTexto(a.celular);
+    const id = limpiarTexto(a.id);
 
-  return (
-    nombreCompleto.includes(q) || 
-    cedula.includes(q) || 
-    celular.includes(q) || 
-    id.includes(q)
-  );
+    return (
+      nombreCompleto.includes(q) || 
+      cedula.includes(q) || 
+      celular.includes(q) || 
+      id.includes(q)
+    );
   });
 
   // Manejadores para el arrastre tipo mano (grab/grabbing)
@@ -77,7 +85,7 @@ function MembersTable({ verHistorico, datosHistoricos = [], afiliados = [], onOp
         marginTop: '4px',
         marginBottom: '20px', 
         display: 'flex', 
-        justify: 'space-between', 
+        justifyContent: 'space-between', 
         alignItems: 'center', 
         gap: '12px', 
         flexWrap: 'wrap' 
@@ -147,7 +155,7 @@ function MembersTable({ verHistorico, datosHistoricos = [], afiliados = [], onOp
           <tbody>
             {listaFiltrada.length === 0 ? (
               <tr>
-                <td colSpan="10" style={{ padding: '24px', textAlign: 'center', color: '#94a3b8', fontSize: '13px' }}>
+                <td colSpan="11" style={{ padding: '24px', textAlign: 'center', color: '#94a3b8', fontSize: '13px' }}>
                   No se encontraron miembros.
                 </td>
               </tr>
@@ -183,7 +191,7 @@ function MembersTable({ verHistorico, datosHistoricos = [], afiliados = [], onOp
                       </span>
                     </td>
 
-                    {/* Nombre y Apellido + Botón Bitácora */}
+                    {/* Nombre y Apellido */}
                     <td style={{ padding: '10px' }}>
                       <div style={{ 
                         display: 'flex', 
@@ -194,7 +202,7 @@ function MembersTable({ verHistorico, datosHistoricos = [], afiliados = [], onOp
                       }}>
                         <span style={{ fontWeight: '700', color: '#0f172a', whiteSpace: 'nowrap' }}>
                           {a.nombre} {a.apellido || ''}
-                        </span>              
+                        </span>             
                       </div>
                     </td>
 
@@ -220,10 +228,9 @@ function MembersTable({ verHistorico, datosHistoricos = [], afiliados = [], onOp
                       {verHistorico ? 'N/A' : (a.nombre_patrocinador || <span style={{ backgroundColor: '#f1f5f9', padding: '2px 6px', borderRadius: '4px', fontWeight: '600', color: '#64748b' }}>Raíz</span>)}
                     </td>
 
-                    {/* Personas que aún te hacen falta para llegar a 15 afiliados */}
+                    {/* Cupos Libres */}
                     <td style={{ padding: '10px', color: '#0f172a', fontSize: '12px', whiteSpace: 'nowrap' }}>
                       <span style={{ 
-                        // Ámbar si le quedan cupos libres, Azul suave si ya completó los 15 (0 cupos libres)
                         backgroundColor: (a.cupos_libres ?? 15) > 0 ? '#fef3c7' : '#e0f2fe', 
                         color: (a.cupos_libres ?? 15) > 0 ? '#b45309' : '#0369a1', 
                         padding: '4px 8px', 
@@ -236,10 +243,9 @@ function MembersTable({ verHistorico, datosHistoricos = [], afiliados = [], onOp
                       </span>
                     </td>
 
-                    {/* Personas de tu red que han comprado */}
+                    {/* Compradores */}
                     <td style={{ padding: '10px', color: '#0f172a', fontSize: '12px', whiteSpace: 'nowrap' }}>
                       <span style={{ 
-                        // Verde si tiene al menos 1 comprador, Gris/Rojo suave si no tiene ninguno
                         backgroundColor: (a.compradores_en_red || 0) > 0 ? '#dcfce7' : '#f1f5f9', 
                         color: (a.compradores_en_red || 0) > 0 ? '#15803d' : '#64748b', 
                         padding: '4px 8px', 
@@ -275,34 +281,33 @@ function MembersTable({ verHistorico, datosHistoricos = [], afiliados = [], onOp
                     <td style={{ padding: '10px', textAlign: 'right', whiteSpace: 'nowrap' }}>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '6px' }}>
                         <button
-                        type="button"
-                        onClick={() => !verHistorico && onOpenBitacora(a)}
-                        disabled={verHistorico}
-                        title={verHistorico ? '' : 'Ver Bitácora de Transacciones'}
-                        style={{
-                          background: 'none',
-                          border: 'none',
-                          padding: 0,
-                          margin: 0,
-                          font: 'inherit',
-                          fontWeight: '600',
-                          // Mantiene el color original según la utilidad (rojo si es negativo)
-                          color: (a.utilidad_propia || 0) >= 0 ? '#277d00' : '#dc2626',
-                          cursor: verHistorico ? 'default' : 'pointer',
-                          textDecoration: verHistorico ? 'none' : 'underline', // Subrayado para indicar interactividad
-                          textDecorationStyle: 'dotted', // Opcional: punteado para diferenciarlo de un link normal
-                          textAlign: 'left',
-                          whiteSpace: 'nowrap',
-                          transition: 'opacity 0.2s',
-                          opacity: isHovered && !verHistorico ? 0.75 : 1
-                        }}
-                      >
-                        ${Number(a.utilidad_propia || 0).toLocaleString('es-CO')}
-                      </button>
+                          type="button"
+                          onClick={() => !verHistorico && onOpenBitacora?.(a)}
+                          disabled={verHistorico}
+                          title={verHistorico ? '' : 'Ver Bitácora de Transacciones'}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            padding: 0,
+                            margin: 0,
+                            font: 'inherit',
+                            fontWeight: '600',
+                            color: (a.utilidad_propia || 0) >= 0 ? '#277d00' : '#dc2626',
+                            cursor: verHistorico ? 'default' : 'pointer',
+                            textDecoration: verHistorico ? 'none' : 'underline',
+                            textDecorationStyle: 'dotted',
+                            textAlign: 'left',
+                            whiteSpace: 'nowrap',
+                            transition: 'opacity 0.2s',
+                            opacity: isHovered && !verHistorico ? 0.75 : 1
+                          }}
+                        >
+                          ${Number(a.utilidad_propia || 0).toLocaleString('es-CO')}
+                        </button>
                         {!verHistorico && (
                           <button 
                             type="button" 
-                            onClick={() => onOpenTransaccion(a)} 
+                            onClick={() => onOpenTransaccion?.(a)} 
                             style={{ 
                               cursor: 'pointer', 
                               padding: '2px 6px', 
@@ -321,15 +326,39 @@ function MembersTable({ verHistorico, datosHistoricos = [], afiliados = [], onOp
                     </td>
 
                     {/* Total Comisiones */}
-                    <td style={{ padding: '10px', textAlign: 'right', fontWeight: '700', color: '#040405', whiteSpace: 'nowrap' }}>
-                      ${Number(Math.round(a.comision_total || 0)).toLocaleString('es-CO')}
+                    <td style={{ padding: '10px', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                      <button
+                        type="button"
+                        onClick={() => !verHistorico && onOpenDetalleComision?.(a)}
+                        disabled={verHistorico}
+                        title={verHistorico ? '' : 'Ver desglose de comisiones por persona'}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          padding: 0,
+                          margin: 0,
+                          font: 'inherit',
+                          fontWeight: '700',
+                          color: verHistorico ? '#6b7280' : '#2563eb',
+                          cursor: verHistorico ? 'default' : 'pointer',
+                          textDecorationStyle: 'dotted',
+                          textDecorationColor: '#2563eb',
+                          textAlign: 'right',
+                          transition: 'all 0.2s ease',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px'
+                        }}
+                      >
+                        ${Number(Math.round(a.comision_total || 0)).toLocaleString('es-CO')}
+                      </button>
                     </td>
 
                     {/* Acciones */}
                     <td style={{ padding: '10px', textAlign: 'center', whiteSpace: 'nowrap' }}>
                       {!verHistorico && (
                         <button 
-                          onClick={() => onDelete(a.id)} 
+                          onClick={() => onDelete?.(a.id)} 
                           style={{ 
                             cursor: 'pointer', 
                             background: '#fee2e2', 
