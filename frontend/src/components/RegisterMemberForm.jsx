@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 
-function RegisterMemberForm({ formData, setFormData, afiliados = [], onRegister }) {
+function RegisterMemberForm({ formData, setFormData, afiliados = [], onRegister, onImportCSV }) {
   const [patrocinadorEncontrado, setPatrocinadorEncontrado] = useState(null);
+  const fileInputRef = useRef(null);
 
-  // Manejador del cambio en el código del patrocinador
   const handlePatrocinadorChange = (e) => {
     const codigo = e.target.value;
     setFormData({ ...formData, id_patrocinador: codigo });
@@ -13,7 +13,6 @@ function RegisterMemberForm({ formData, setFormData, afiliados = [], onRegister 
       return;
     }
 
-    // Buscar en el estado local de afiliados
     const encontrado = afiliados.find(a => String(a.id) === codigo.trim());
     if (encontrado) {
       setPatrocinadorEncontrado(encontrado);
@@ -22,10 +21,40 @@ function RegisterMemberForm({ formData, setFormData, afiliados = [], onRegister 
     }
   };
 
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      const content = evt.target.result;
+      const lines = content.split('\n').filter(line => line.trim() !== '');
+      if (lines.length <= 1) return;
+
+      const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+      const data = lines.slice(1).map(line => {
+        const values = line.split(',').map(v => v.trim());
+        let obj = {};
+        headers.forEach((header, index) => {
+          obj[header] = values[index] || '';
+        });
+        return obj;
+      });
+
+      if (onImportCSV) {
+        onImportCSV(data);
+      } else {
+        console.log('Datos importados del CSV:', data);
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  };
+
   const inputStyle = {
     width: '100%',
     padding: '7px 10px',
-    fontSize: '12px',
+    fontSize: '11px',
     color: '#1f2937',
     backgroundColor: '#f8fafc',
     border: '1px solid #e2e8f0',
@@ -40,7 +69,8 @@ function RegisterMemberForm({ formData, setFormData, afiliados = [], onRegister 
     fontWeight: '700',
     color: '#475569',
     textTransform: 'uppercase',
-    letterSpacing: '0.05em'
+    letterSpacing: '0.05em',
+    whiteSpace: 'nowrap' // Evita que la etiqueta se rompa en 2 líneas
   };
 
   const handleFocus = (e) => {
@@ -66,35 +96,21 @@ function RegisterMemberForm({ formData, setFormData, afiliados = [], onRegister 
       boxSizing: 'border-box',
       fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
     }}>
-      {/* Encabezado Estilizado */}
+      {/* Encabezado */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '12px' }}>
-        <span style={{ fontSize: '15px' }}>👤</span>
-        <h3 style={{ 
-          margin: 0, 
-          fontSize: '14px', 
-          fontWeight: '700', 
-          color: '#0f172a',
-          letterSpacing: '-0.01em'
-        }}>
+        <span style={{ fontSize: '20px' }}>👤</span>
+        <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '700', color: '#0f172a' }}>
           Registrar Miembro
         </h3>
       </div>
 
-      <form 
-        onSubmit={onRegister} 
-        style={{ 
-          display: 'flex', 
-          flexDirection: 'column', 
-          gap: '12px',
-          width: '100%',
-          boxSizing: 'border-box'
-        }}
-      >
-        {/* Grid ajustado a 3 columnas simétricas */}
+      <form onSubmit={onRegister} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        
+        {/* Grid fluido: intenta poner los 6 en una línea, si no caben se adaptan */}
         <div style={{ 
           display: 'grid', 
-          gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', 
-          gap: '10px 14px', 
+          gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', 
+          gap: '10px 12px', 
           width: '100%' 
         }}>
           
@@ -141,12 +157,9 @@ function RegisterMemberForm({ formData, setFormData, afiliados = [], onRegister 
               type="text" 
               placeholder="Ej. 1144123456"
               required
-              maxLength={10} // Restringe a máximo 10 caracteres
-              pattern="\d{1,10}" // Solo números, entre 1 y 10 dígitos
-              title="La cédula debe contener solo números y máximo 10 dígitos"
+              maxLength={10}
               value={formData.cedula || ''} 
               onChange={(e) => {
-                // Limita la entrada a solo números y máximo 10 caracteres
                 const value = e.target.value.replace(/\D/g, '').slice(0, 10);
                 setFormData({ ...formData, cedula: value });
               }} 
@@ -165,13 +178,9 @@ function RegisterMemberForm({ formData, setFormData, afiliados = [], onRegister 
               type="tel" 
               placeholder="Ej. 3001234567"
               required
-              minLength={10} // Requiere al menos 10 caracteres al enviar
-              maxLength={10} // No permite escribir más de 10 caracteres
-              pattern="\d{10}" // Exige exactamente 10 dígitos numéricos
-              title="El celular debe tener exactamente 10 dígitos numéricos"
+              maxLength={10}
               value={formData.celular || ''} 
               onChange={(e) => {
-                // Limita la entrada a solo números y máximo 10 caracteres
                 const value = e.target.value.replace(/\D/g, '').slice(0, 10);
                 setFormData({ ...formData, celular: value });
               }} 
@@ -197,14 +206,14 @@ function RegisterMemberForm({ formData, setFormData, afiliados = [], onRegister 
             />
           </div>
 
-          {/* Código del Patrocinador */}
+          {/* Patrocinador */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
             <label style={labelStyle}>
-              Código del Patrocinador
+              Patrocinador
             </label>
             <input 
               type="number" 
-              placeholder="ID (Vacío = Líder Raíz)"
+              placeholder="ID (Vacío = Raíz)"
               value={formData.id_patrocinador || ''} 
               onChange={handlePatrocinadorChange} 
               style={inputStyle}
@@ -228,8 +237,41 @@ function RegisterMemberForm({ formData, setFormData, afiliados = [], onRegister 
           </div>
         )}
 
-        {/* Botón Alineado a la Derecha */}
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '4px' }}>
+        {/* Input Oculto para Archivos CSV */}
+        <input 
+          type="file" 
+          accept=".csv" 
+          ref={fileInputRef} 
+          onChange={handleFileChange} 
+          style={{ display: 'none' }} 
+        />
+
+        {/* Botones de Acción */}
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '4px' }}>
+          
+          <button 
+            type="button" 
+            onClick={() => fileInputRef.current && fileInputRef.current.click()}
+            style={{ 
+              backgroundColor: '#f1f5f9', 
+              color: '#334155', 
+              fontSize: '12px', 
+              fontWeight: '600', 
+              padding: '7px 14px', 
+              borderRadius: '6px', 
+              border: '1px solid #cbd5e1',
+              cursor: 'pointer', 
+              transition: 'all 0.15s ease',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px'
+            }}
+            onMouseEnter={(e) => e.target.style.backgroundColor = '#e2e8f0'}
+            onMouseLeave={(e) => e.target.style.backgroundColor = '#f1f5f9'}
+          >
+            📥 Importar CSV
+          </button>
+
           <button 
             type="submit" 
             style={{ 
@@ -237,7 +279,7 @@ function RegisterMemberForm({ formData, setFormData, afiliados = [], onRegister 
               color: '#ffffff', 
               fontSize: '12px', 
               fontWeight: '600', 
-              padding: '8px 18px', 
+              padding: '7px 16px', 
               borderRadius: '6px', 
               border: 'none',
               cursor: 'pointer', 
@@ -249,12 +291,11 @@ function RegisterMemberForm({ formData, setFormData, afiliados = [], onRegister 
             }}
             onMouseEnter={(e) => e.target.style.backgroundColor = '#1d4ed8'}
             onMouseLeave={(e) => e.target.style.backgroundColor = '#2563eb'}
-            onMouseDown={(e) => e.target.style.transform = 'scale(0.98)'}
-            onMouseUp={(e) => e.target.style.transform = 'scale(1)'}
           >
             ➕ Agregar Afiliado
           </button>
         </div>
+
       </form>
     </div>
   );

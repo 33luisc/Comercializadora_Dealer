@@ -376,7 +376,7 @@ function NetworkTree({ afiliados = [], onOpenDetalleComision }) {
     <div style={{ fontFamily: 'Inter, system-ui, -apple-system, sans-serif', padding: '4px 0', width: '100%', overflowX: 'auto' }}>
       
       {/* Controles de Búsqueda */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', flexWrap: 'wrap', marginBottom: '20px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', flexWrap: 'wrap', marginTop: '28px', marginBottom: '20px' }}>
         <div style={{ position: 'relative', flex: '1', minWidth: '240px', maxWidth: '380px' }}>
           <input 
             type="text" 
