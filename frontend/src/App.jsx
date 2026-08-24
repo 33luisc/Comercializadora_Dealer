@@ -21,7 +21,7 @@ function App() {
     verHistorico, setVerHistorico, datosHistoricos,
     verBitacora, setVerBitacora, afiliadoSeleccionadoBitacora, setAfiliadoSeleccionadoBitacora, listaTransacciones,
     cargarDatos, cargarPeriodoHistorico, handleRegisterAfiliado, handleAddTransaccion, handleCierreMes, handleDelete, cargarBitacoraAfiliado,
-    handleUpdateAfiliado // 👈 1. Extraemos la función del hook
+    handleUpdateAfiliado // Extraemos la función del hook
   } = useDashboardData();
 
   const [formData, setFormData] = useState({

@@ -31,7 +31,7 @@ export const apiService = {
     return data;
   },
 
-  // 👈 NUEVO MÉTODO AGREGADO: Edición / Actualización de afiliado
+  // NUEVO MÉTODO AGREGADO: Edición / Actualización de afiliado
   async actualizarAfiliado(id, datosActualizados) {
     const token = sessionStorage.getItem('adminToken');
     const headers = {
