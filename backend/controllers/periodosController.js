@@ -47,9 +47,11 @@ exports.cierreMes = async (req, res) => {
             GROUP BY a.id
         `;
         const rows = await dbAll(query);
-        const calculados = procesarCalculosMLMDinamico(rows, config);
+        
+        // CORRECCIÓN 1: Se recibe directamente el Array devuelto por el servicio
+        const afiliados = procesarCalculosMLMDinamico(rows, config);
 
-        if (calculados.length === 0) {
+        if (afiliados.length === 0) {
             return res.json({ message: `Periodo ${periodo} procesado sin afiliados activos.` });
         }
 
@@ -64,7 +66,7 @@ exports.cierreMes = async (req, res) => {
             `;
 
             // Insertar secuencialmente a cada afiliado
-            for (const u of calculados) {
+            for (const u of afiliados) {
                 await dbRun(insertQuery, [
                     periodo, u.id, u.nombre, u.apellido || '', u.cedula || '', u.nivel, u.estado, 
                     u.utilidad_propia, u.comision_propia, u.comision_por_red, u.bono_liderazgo, u.comision_total
@@ -115,20 +117,27 @@ exports.obtenerRentabilidad = async (req, res) => {
         const config = await obtenerConfiguracionCompletaBD();
         const rows = await dbAll(query);
         
-        const calculados = procesarCalculosMLMDinamico(rows, config);
-        const utilidadGlobal = calculados.reduce((sum, u) => sum + u.utilidad_propia, 0);
-        const comisionesPagadas = calculados.reduce((sum, u) => sum + u.comision_total, 0);
+        // CORRECCIÓN 2: Se recibe como Array estándar
+        const afiliados = procesarCalculosMLMDinamico(rows, config);
+        
+        const utilidadGlobal = afiliados.reduce((sum, u) => sum + u.utilidad_propia, 0);
+        const comisionesPagadas = afiliados.reduce((sum, u) => sum + u.comision_total, 0);
         const margenLibre = utilidadGlobal - comisionesPagadas;
         const porcentajeRepartido = utilidadGlobal > 0 ? (comisionesPagadas / utilidadGlobal) * 100 : 0;
+
+        // CORRECCIÓN 3: Leemos el monto acumulado directamente del primer elemento del array (inyectado previamente en el servicio)
+        const montoSinNivel1 = afiliados.length > 0 ? (afiliados[0]._meta_monto_sin_nivel1 || 0) : 0;
 
         res.json({
             utilidadGlobal,
             comisionesPagadas,
             margenLibre,
             porcentajeRepartido: porcentajeRepartido.toFixed(2),
-            porcentajeRetenido: (100 - porcentajeRepartido).toFixed(2)
+            porcentajeRetenido: (100 - porcentajeRepartido).toFixed(2),
+            montoSinNivel1
         });
     } catch (err) {
+        console.error("Error en obtenerRentabilidad:", err);
         res.status(500).json({ error: 'Error leyendo parámetros del servidor.' });
     }
 };

@@ -23,7 +23,7 @@ function procesarCalculosMLMDinamico(afiliados, config) {
         u.comision_por_red = 0;
         u.bono_liderazgo = 0;
         u.comision_total = 0;
-        u.desglose_comisiones = []; // <-- NUEVO: Historial de aportantes
+        u.desglose_comisiones = [];
     });
 
     const nivelesOrdenadosDesc = [...niveles].sort((a, b) => b.umbral - a.umbral);
@@ -32,6 +32,8 @@ function procesarCalculosMLMDinamico(afiliados, config) {
         const nivelAlcanzado = nivelesOrdenadosDesc.find(n => utilidadTotal >= n.umbral);
         return nivelAlcanzado ? nivelAlcanzado.nivel : 0;
     }
+
+    let acumuladoSinNivel1 = 0;
 
     // 1. DETERMINAR ESTADO Y NIVEL DE CADA AFILIADO
     afiliados.forEach(usuario => {
@@ -63,6 +65,16 @@ function procesarCalculosMLMDinamico(afiliados, config) {
             usuario.estado = "Inactivo";
             usuario.nivel = 0;
         }
+
+        // Si no alcanzó el Nivel 1 (es decir, nivel 0), acumulamos su dinero
+        if (usuario.nivel === 0) {
+            acumuladoSinNivel1 += (Number(usuario.utilidad_propia) || 0);
+        }
+    });
+
+    // Asignamos la métrica global a cada objeto para que no se pierda sin cambiar el retorno
+    afiliados.forEach(u => {
+        u._meta_monto_sin_nivel1 = acumuladoSinNivel1;
     });
 
     const nivelMaximoExistente = niveles.length > 0 ? Math.max(...niveles.map(n => n.nivel)) : 4;
@@ -111,7 +123,6 @@ function procesarCalculosMLMDinamico(afiliados, config) {
 
                     patrocinador.comision_por_red += montoDiferencial;
 
-                    // REGISTRO EN EL DESGLOSE DEL PATROCINADOR
                     patrocinador.desglose_comisiones.push({
                         origen_id: comprador.id,
                         nombre_origen: `${comprador.nombre} ${comprador.apellido || ''}`,
@@ -148,7 +159,6 @@ function procesarCalculosMLMDinamico(afiliados, config) {
             const cantidadNivelesMaxDirectos = nivelesMaxDirectos.length;
 
             if (cantidadNivelesMaxDirectos >= 1) {
-                // Parte A: Red de niveles 1, 2 y 3
                 const descendientesInferiores = descendientes.filter(desc => desc.nivel >= 1 && desc.nivel < nivelMaximoExistente);
 
                 descendientesInferiores.forEach(desc => {
@@ -167,7 +177,6 @@ function procesarCalculosMLMDinamico(afiliados, config) {
                     }
                 });
 
-                // Parte B: Directos Nivel 4 en posiciones 3ª, 5ª, 7ª, etc.
                 const limiteDirectos = Math.min(cantidadNivelesMaxDirectos, general.limite_directos_bono || 15);
                 for (let i = 3; i <= limiteDirectos; i += 2) {
                     const directoNivelMax = nivelesMaxDirectos[i - 1];
@@ -193,6 +202,7 @@ function procesarCalculosMLMDinamico(afiliados, config) {
         usuario.comision_total = usuario.comision_propia + usuario.comision_por_red + usuario.bono_liderazgo;
     });
 
+    // Retorna DIRECTAMENTE el array como siempre lo hizo
     return afiliados;
 }
 

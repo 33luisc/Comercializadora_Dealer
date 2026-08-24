@@ -98,6 +98,19 @@ function DashboardControls({
             <svg style={{ width: '16px', height: '16px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z"/></svg>
           </div>
         </div>
+        
+        {/* Tarjeta 5: Sin Nivel 1 */}
+        <div style={{ backgroundColor: '#ffffff', padding: '12px 16px', borderRadius: '12px', border: '1px solid #f3f4f6', boxShadow: '0 1px 2px rgba(0,0,0,0.02)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div>
+            <p style={{ margin: 0, fontSize: '10px', color: '#9ca3af', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Monto Nivel 0</p>
+            <p style={{ margin: '2px 0 0 0', fontSize: '18px', fontWeight: 'bold', color: '#d97706' }}>
+              ${Number(rentabilidad?.montoSinNivel1 || 0).toLocaleString('es-CO', { maximumFractionDigits: 0 })}
+            </p>
+          </div>
+          <div style={{ padding: '8px', backgroundColor: '#fffbeb', color: '#d97706', borderRadius: '10px', display: 'flex' }}>
+            <svg style={{ width: '16px', height: '16px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+          </div>
+        </div>
 
       </div>
 
