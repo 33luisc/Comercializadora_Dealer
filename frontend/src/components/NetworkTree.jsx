@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
 // Función helper para limpiar tildes y minúsculas
 const limpiarTexto = (texto) => 
@@ -37,7 +37,7 @@ function NodoArbol({ miembro, todosLosAfiliados, expandirTodo, coincidenciaIds, 
   const iniciales = `${miembro.nombre?.[0] || ''}${miembro.apellido?.[0] || ''}`.toUpperCase() || 'U';
 
   return (
-    <div style={{ marginLeft: esRaiz ? '10px' : '28px', position: 'relative' }}>
+    <div style={{ marginLeft: esRaiz ? '0px' : '28px', position: 'relative' }}>
       
       {/* LÍNEAS CONECTORAS TIPO ÁRBOL (Solo para hijos) */}
       {!esRaiz && (
@@ -64,13 +64,12 @@ function NodoArbol({ miembro, todosLosAfiliados, expandirTodo, coincidenciaIds, 
         </>
       )}
 
-      {/* Fila del Nodo */}
+      {/* Fila del Nodo - inline-flex para que NO ocupe todo el ancho de la pantalla */}
       <div style={{ 
-        display: 'flex', 
+        display: 'inline-flex', 
         alignItems: 'center', 
-        justify: 'space-between',
         gap: '12px', 
-        padding: esRaiz ? '12px 16px' : '9px 14px', 
+        padding: esRaiz ? '10px 16px' : '8px 14px', 
         marginTop: '8px',
         backgroundColor: esCoincidenciaDirecta 
           ? '#f0fdf4' 
@@ -83,176 +82,133 @@ function NodoArbol({ miembro, todosLosAfiliados, expandirTodo, coincidenciaIds, 
           ? '0 4px 12px rgba(99, 102, 241, 0.08)' 
           : '0 1px 3px rgba(0,0,0,0.02)',
         transition: 'all 0.15s ease',
-        width: '100%',
         boxSizing: 'border-box'
       }}>
         
-        {/* BLOQUE IZQUIERDO: Flecha Destacada + ID + Avatar + Nombre + Datos Pegasus */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-          
-          {/* BOTÓN FLECHA EXPANDIR/COLAPSAR RESALTADO */}
-          {tieneHijos ? (
-            <button 
-              type="button" 
-              onClick={() => setAbierto(!abierto)} 
-              title={abierto ? "Colapsar descendientes" : "Expandir descendientes"}
+        {/* BOTÓN FLECHA EXPANDIR/COLAPSAR */}
+        {tieneHijos ? (
+          <button 
+            type="button" 
+            onClick={() => setAbierto(!abierto)} 
+            title={abierto ? "Colapsar descendientes" : "Expandir descendientes"}
+            style={{ 
+              cursor: 'pointer', 
+              background: abierto ? 'linear-gradient(135deg, #4f46e5, #6366f1)' : '#ffffff',
+              border: abierto ? 'none' : '2px solid #6366f1',
+              borderRadius: '8px',
+              width: '28px',
+              height: '28px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: abierto ? '#ffffff' : '#6366f1',
+              boxShadow: '0 2px 5px rgba(99, 102, 241, 0.25)',
+              transition: 'all 0.2s ease',
+              flexShrink: 0
+            }}
+          >
+            <svg 
               style={{ 
-                cursor: 'pointer', 
-                background: abierto ? 'linear-gradient(135deg, #4f46e5, #6366f1)' : '#ffffff',
-                border: abierto ? 'none' : '2px solid #6366f1',
-                borderRadius: '8px',
-                width: '28px',
-                height: '28px',
-                display: 'flex',
-                alignItems: 'center',
-                justify: 'center',
-                color: abierto ? '#ffffff' : '#6366f1',
-                boxShadow: '0 2px 5px rgba(99, 102, 241, 0.25)',
-                transition: 'all 0.2s ease',
-                flexShrink: 0
-              }}
+                width: '14px', 
+                height: '14px', 
+                transform: abierto ? 'rotate(90deg)' : 'rotate(0deg)',
+                transition: 'transform 0.2s ease'
+              }} 
+              fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3"
             >
-              <svg 
-                style={{ 
-                  width: '14px', 
-                  height: '14px', 
-                  transform: abierto ? 'rotate(90deg)' : 'rotate(0deg)',
-                  transition: 'transform 0.2s ease'
-                }} 
-                fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-              </svg>
-            </button>
-          ) : (
-            <span style={{ width: '28px', display: 'flex', justifyContent: 'center', flexShrink: 0 }}>
-              <div style={{ width: '6px', height: '6px', backgroundColor: '#94a3b8', borderRadius: '50%' }} />
-            </span>
-          )}
-
-          {/* Badge ID */}
-          <span style={{ 
-            backgroundColor: '#e0e7ff', // esRaiz ? '#4f46e5' :
-            color: '#3730a3', // esRaiz ? '#ffffff' :
-            padding: '3px 8px', 
-            borderRadius: '6px', 
-            fontSize: '11px', 
-            fontWeight: '800',
-            flexShrink: 0
-          }}>
-            #{miembro.id}
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+        ) : (
+          <span style={{ width: '28px', display: 'flex', justifyContent: 'center', flexShrink: 0 }}>
+            <div style={{ width: '6px', height: '6px', backgroundColor: '#94a3b8', borderRadius: '50%' }} />
           </span>
+        )}
 
-          {/* Avatar con Iniciales */}
-          <div style={{
-            width: esRaiz ? '30px' : '26px',
-            height: esRaiz ? '30px' : '26px',
-            borderRadius: '50%',
-            backgroundColor: esRaiz ? '#2563eb' : (esActivo ? '#3b82f6' : '#94a3b8'),
-            color: '#ffffff',
-            fontSize: '11px', // Ligera reducción opcional para asegurar que 2 letras quepan bien
-            fontWeight: '700',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center', // Corregido: "justifyContent" en lugar de "justify"
-            lineHeight: '1',
-            flexShrink: 0
-          }}>
-            {iniciales}
-          </div>
+        {/* Badge ID */}
+        <span style={{ 
+          backgroundColor: '#e0e7ff',
+          color: '#3730a3',
+          padding: '3px 8px', 
+          borderRadius: '6px', 
+          fontSize: '11px', 
+          fontWeight: '800',
+          flexShrink: 0
+        }}>
+          #{miembro.id}
+        </span>
 
-          {/* Nombre Completo y Distintivo de Padre */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span style={{ 
-              fontWeight: esRaiz ? '700' : '600', 
-              color: '#0f172a', 
-              fontSize: esRaiz ? '15px' : '13.5px', 
-              whiteSpace: 'nowrap' 
-            }}>
-              {miembro.nombre} {miembro.apellido || ''}
-            </span>
-
-            {esRaiz && (
-              <span style={{ backgroundColor: '#fef3c7', color: '#b45309', padding: '1px 6px', borderRadius: '4px', fontSize: '10px', fontWeight: '800' }}>
-                LÍDER
-              </span>
-            )}
-          </div>
-
-          {/* Cédula */}
-          {miembro.cedula && (
-            <a 
-              style={{ color: '#54006e', textDecoration: 'none', fontWeight: '600', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '3px', marginLeft: '4px' }}
-            > <svg 
-              width="16" 
-              height="16" 
-              viewBox="0 0 24 24" 
-              fill="none" 
-              stroke="currentColor" 
-              strokeWidth="2" 
-              strokeLinecap="round" 
-              strokeLinejoin="round"
-            >
-              <rect width="18" height="14" x="3" y="5" rx="2" />
-              <circle cx="9" cy="11" r="2" />
-              <path d="M15 11h2" />
-              <path d="M15 15h2" />
-              <path d="M7 17v-1a2 2 0 0 1 2-2h0a2 2 0 0 1 2 2v1" />
-            </svg> {miembro.cedula}
-            </a>
-          )}
-
-          {/* WhatsApp */}
-          {miembro.celular && (
-            <a 
-              href={`https://wa.me/57${String(miembro.celular).replace(/\D/g, '')}`} 
-              target="_blank" 
-              rel="noopener noreferrer"
-              style={{ color: '#2563eb', textDecoration: 'none', fontWeight: '600', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '3px', marginLeft: '4px' }}
-            >
-              <svg style={{ width: '14px', height: '14px', color: '#16a34a' }} fill="currentColor" viewBox="0 0 24 24">
-              <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981z"/>
-              </svg> {miembro.celular}
-            </a>
-          )}
-
-          {/* Estado */}
-          <span style={{
-            padding: '2px 8px',
-            borderRadius: '12px',
-            fontSize: '10px',
-            fontWeight: '700',
-            backgroundColor: esActivo ? '#dcfce7' : '#f1f5f9',
-            color: esActivo ? '#15803d' : '#64748b',
-            border: `1px solid ${esActivo ? '#86efac' : '#e2e8f0'}`
-          }}>
-            {miembro.estado || 'Activo'}
-          </span>
-
-          {/* Nivel */}
-          <span style={{ backgroundColor: '#f1f5f9', color: '#334155', padding: '2px 6px', borderRadius: '6px', fontWeight: '600', fontSize: '11px' }}>
-            Nivel {miembro.nivel}
-          </span>
-
-          {/* Métricas de Directos / Red */}
-          {tieneHijos && (
-            <span style={{ 
-              backgroundColor: '#e0f2fe', 
-              color: '#0369a1', 
-              border: '1px solid #bae6fd',
-              padding: '2px 7px', 
-              borderRadius: '6px', 
-              fontWeight: '700', 
-              fontSize: '11px',
-              whiteSpace: 'nowrap'
-            }}>
-              👥 Directos: {hijos.length} | Red: {totalRed}
-            </span>
-          )}
+        {/* Avatar con Iniciales */}
+        <div style={{
+          width: esRaiz ? '30px' : '26px',
+          height: esRaiz ? '30px' : '26px',
+          borderRadius: '50%',
+          backgroundColor: esRaiz ? '#2563eb' : (esActivo ? '#3b82f6' : '#94a3b8'),
+          color: '#ffffff',
+          fontSize: '11px',
+          fontWeight: '700',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          lineHeight: '1',
+          flexShrink: 0
+        }}>
+          {iniciales}
         </div>
 
-        {/* BLOQUE DERECHO (FINANZAS): Utilidades y Comisiones */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexShrink: 0 }}>
+        {/* Nombre Completo */}
+        <span style={{ 
+          fontWeight: esRaiz ? '700' : '600', 
+          color: '#0f172a', 
+          fontSize: esRaiz ? '15px' : '13.5px', 
+          whiteSpace: 'nowrap' 
+        }}>
+          {miembro.nombre} {miembro.apellido || ''}
+        </span>
+
+        {/* Tag LÍDER */}
+        {esRaiz && (
+          <span style={{ backgroundColor: '#fef3c7', color: '#b45309', padding: '1px 6px', borderRadius: '4px', fontSize: '10px', fontWeight: '800' }}>
+            LÍDER
+          </span>
+        )}
+
+        {/* Estado */}
+        <span style={{
+          padding: '2px 8px',
+          borderRadius: '12px',
+          fontSize: '10px',
+          fontWeight: '700',
+          backgroundColor: esActivo ? '#dcfce7' : '#f1f5f9',
+          color: esActivo ? '#15803d' : '#64748b',
+          border: `1px solid ${esActivo ? '#86efac' : '#e2e8f0'}`
+        }}>
+          {miembro.estado || 'Activo'}
+        </span>
+
+        {/* Nivel */}
+        <span style={{ backgroundColor: '#f1f5f9', color: '#334155', padding: '2px 6px', borderRadius: '6px', fontWeight: '600', fontSize: '11px', whiteSpace: 'nowrap' }}>
+          Nivel {miembro.nivel}
+        </span>
+
+        {/* Métricas Directos y Red */}
+        {tieneHijos && (
+          <span style={{ 
+            backgroundColor: '#e0f2fe', 
+            color: '#0369a1', 
+            border: '1px solid #bae6fd',
+            padding: '3px 8px', 
+            borderRadius: '6px', 
+            fontWeight: '700', 
+            fontSize: '11px',
+            whiteSpace: 'nowrap'
+          }}>
+            👥 Directos: {hijos.length} | Red: {totalRed}
+          </span>
+        )}
+
+        {/* BLOQUE FINANCIERO (Junto al cuadro de directos) */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginLeft: '12px', flexShrink: 0 }}>
           
           {/* Utilidad Propia */}
           <div style={{ textAlign: 'right' }}>
@@ -286,7 +242,7 @@ function NodoArbol({ miembro, todosLosAfiliados, expandirTodo, coincidenciaIds, 
                 cursor: 'pointer'
               }}
             >
-             ➔ ${Number(Math.round(miembro.comision_total || 0)).toLocaleString('es-CO')} 
+              ➔ ${Number(Math.round(miembro.comision_total || 0)).toLocaleString('es-CO')} 
             </button>
           </div>
 
@@ -318,6 +274,35 @@ function NodoArbol({ miembro, todosLosAfiliados, expandirTodo, coincidenciaIds, 
 function NetworkTree({ afiliados = [], onOpenDetalleComision }) {
   const [filtro, setFiltro] = useState('');
   const [expandirTodo, setExpandirTodo] = useState(null);
+
+  // Referencias y estados para el desplazamiento por arrastre (drag-to-scroll)
+  const treeContainerRef = useRef(null);
+  const [isMouseDown, setIsMouseDown] = useState(false);
+  const [startX, setStartX] = useState(0);
+  const [scrollLeft, setScrollLeft] = useState(0);
+
+  const handleMouseDown = (e) => {
+    if (['BUTTON', 'INPUT', 'SVG', 'PATH'].includes(e.target.tagName)) return;
+    setIsMouseDown(true);
+    setStartX(e.pageX - treeContainerRef.current.offsetLeft);
+    setScrollLeft(treeContainerRef.current.scrollLeft);
+  };
+
+  const handleMouseLeave = () => {
+    setIsMouseDown(false);
+  };
+
+  const handleMouseUp = () => {
+    setIsMouseDown(false);
+  };
+
+  const handleMouseMove = (e) => {
+    if (!isMouseDown) return;
+    e.preventDefault();
+    const x = e.pageX - treeContainerRef.current.offsetLeft;
+    const walk = (x - startX) * 1.5;
+    treeContainerRef.current.scrollLeft = scrollLeft - walk;
+  };
 
   const handleFilterChange = (e) => {
     const val = e.target.value;
@@ -373,7 +358,7 @@ function NetworkTree({ afiliados = [], onOpenDetalleComision }) {
   );
 
   return (
-    <div style={{ fontFamily: 'Inter, system-ui, -apple-system, sans-serif', padding: '4px 0', width: '100%', overflowX: 'auto' }}>
+    <div style={{ fontFamily: 'Inter, system-ui, -apple-system, sans-serif', padding: '4px 0', width: '100%' }}>
       
       {/* Controles de Búsqueda */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', flexWrap: 'wrap', marginTop: '28px', marginBottom: '20px' }}>
@@ -421,26 +406,42 @@ function NetworkTree({ afiliados = [], onOpenDetalleComision }) {
         </div>
       </div>
 
-      {/* Árbol */}
-      {raices.length === 0 ? (
-        <div style={{ padding: '24px', textAlign: 'center', color: '#94a3b8', fontSize: '13px', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px dashed #cbd5e1' }}>
-          {filtro ? 'No se encontraron miembros de la red con el criterio ingresado.' : 'No hay nodos raíz registrados.'}
-        </div>
-      ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', minWidth: '850px' }}>
-          {raices.map(raiz => (
-            <NodoArbol 
-              key={raiz.id} 
-              miembro={raiz} 
-              todosLosAfiliados={afiliadosVisibles} 
-              expandirTodo={expandirTodo} 
-              coincidenciaIds={coincidenciaIds}
-              onOpenDetalleComision={onOpenDetalleComision}
-              esRaiz={true}
-            />
-          ))}
-        </div>
-      )}
+      {/* Contenedor deslizable horizontalmente con ratón y scrollbar */}
+      <div 
+        ref={treeContainerRef}
+        onMouseDown={handleMouseDown}
+        onMouseLeave={handleMouseLeave}
+        onMouseUp={handleMouseUp}
+        onMouseMove={handleMouseMove}
+        style={{ 
+          overflowX: 'auto', 
+          width: '100%', 
+          cursor: isMouseDown ? 'grabbing' : 'grab',
+          userSelect: 'none',
+          paddingBottom: '16px'
+        }}
+      >
+        {raices.length === 0 ? (
+          <div style={{ padding: '24px', textAlign: 'center', color: '#94a3b8', fontSize: '13px', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px dashed #cbd5e1' }}>
+            {filtro ? 'No se encontraron miembros de la red con el criterio ingresado.' : 'No hay nodos raíz registrados.'}
+          </div>
+        ) : (
+          <div style={{ display: 'inline-block', minWidth: '100%', paddingRight: '20px', boxSizing: 'border-box' }}>
+            {raices.map(raiz => (
+              <NodoArbol 
+                key={raiz.id} 
+                miembro={raiz} 
+                todosLosAfiliados={afiliadosVisibles} 
+                expandirTodo={expandirTodo} 
+                coincidenciaIds={coincidenciaIds}
+                onOpenDetalleComision={onOpenDetalleComision}
+                esRaiz={true}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+
     </div>
   );
 }
