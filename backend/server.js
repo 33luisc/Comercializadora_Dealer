@@ -28,8 +28,8 @@ app.get('/api/ping', (req, res) => {
 setInterval(() => {
     const tiempoInactivo = Date.now() - ultimoHeartbeat;
 
-    // Damos una tolerancia de 35 segundos (35000 ms)
-    if (tiempoInactivo > 35000) {
+    // Damos una tolerancia de 35 segundos (350000 ms)
+    if (tiempoInactivo > 350000) {
         console.log('🔴 Navegador cerrado. Finalizando base de datos...');
 
         db.close((err) => {
