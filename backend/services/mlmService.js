@@ -57,7 +57,7 @@ function procesarCalculosMLMDinamico(afiliados, config) {
         const utilidadDescendentes = descendientes.reduce((suma, sub) => suma + (Number(sub.utilidad_propia) || 0), 0);
         
         // CORRECCIÓN: La utilidad de calificación DEBE sumar la propia + la red descendente
-        usuario.utilidad_total_calificacion = utilidadPropiaNum + utilidadDescendentes;
+        usuario.utilidad_total_calificacion = Math.floor(utilidadPropiaNum + utilidadDescendentes);
 
         usuario.compradores_en_red = descendientes.filter(sub => (Number(sub.utilidad_propia) || 0) > 0).length;
 
@@ -79,7 +79,7 @@ function procesarCalculosMLMDinamico(afiliados, config) {
     });
 
     afiliados.forEach(u => {
-        u._meta_monto_sin_nivel1 = acumuladoSinNivel1;
+        u._meta_monto_sin_nivel1 = Math.floor(acumuladoSinNivel1);
     });
 
     const nivelMaximoExistente = niveles.length > 0 ? Math.max(...niveles.map(n => n.nivel)) : 4;
@@ -102,7 +102,8 @@ function procesarCalculosMLMDinamico(afiliados, config) {
             porcentajePropioComprador = 1 / 6; // Base por defecto si no ha alcanzado nivel en tabla
         }
 
-        const montoComisionPropia = utilidadComprador * porcentajePropioComprador;
+        // Redondeo hacia abajo del cálculo intermedio
+        const montoComisionPropia = Math.floor(utilidadComprador * porcentajePropioComprador);
         comprador.comision_propia = montoComisionPropia;
         
         if (montoComisionPropia > 0) {
@@ -130,7 +131,8 @@ function procesarCalculosMLMDinamico(afiliados, config) {
                 // Solo cobra si tiene un porcentaje mayor al que ya se ha repartido en la línea ascendente
                 if (porcentajePatrocinador > porcentajeCobradoAcumulado) {
                     const factorDiferencial = porcentajePatrocinador - porcentajeCobradoAcumulado;
-                    const montoDiferencial = utilidadComprador * factorDiferencial;
+                    // Redondeo hacia abajo del diferencial
+                    const montoDiferencial = Math.floor(utilidadComprador * factorDiferencial);
 
                     patrocinador.comision_por_red += montoDiferencial;
 
@@ -181,7 +183,8 @@ function procesarCalculosMLMDinamico(afiliados, config) {
                 descendientesElegibles.forEach(desc => {
                     const utilidad = Number(desc.utilidad_propia) || 0;
                     if (utilidad > 0) {
-                        const montoBono = utilidad * factorLiderazgo;
+                        // Redondeo hacia abajo del bono de liderazgo
+                        const montoBono = Math.floor(utilidad * factorLiderazgo);
                         usuario.bono_liderazgo += montoBono;
                         
                         usuario.desglose_comisiones.push({
@@ -200,7 +203,8 @@ function procesarCalculosMLMDinamico(afiliados, config) {
                     if (directoNivelMax) {
                         const utilidad = Number(directoNivelMax.utilidad_propia) || 0;
                         if (utilidad > 0) {
-                            const montoBono = utilidad * factorLiderazgo;
+                            // Redondeo hacia abajo del bono directo de nivel máx
+                            const montoBono = Math.floor(utilidad * factorLiderazgo);
                             usuario.bono_liderazgo += montoBono;
 
                             usuario.desglose_comisiones.push({
@@ -217,11 +221,11 @@ function procesarCalculosMLMDinamico(afiliados, config) {
         }
     });
 
-    // CONSOLIDACIÓN Y REDONDEO FINAL
+    // CONSOLIDACIÓN FINAL (Se redondean enteros de forma preventiva)
     afiliados.forEach(usuario => {
-        usuario.comision_propia = Math.round(usuario.comision_propia);
-        usuario.comision_por_red = Math.round(usuario.comision_por_red);
-        usuario.bono_liderazgo = Math.round(usuario.bono_liderazgo);
+        usuario.comision_propia = Math.floor(usuario.comision_propia);
+        usuario.comision_por_red = Math.floor(usuario.comision_por_red);
+        usuario.bono_liderazgo = Math.floor(usuario.bono_liderazgo);
         usuario.comision_total = usuario.comision_propia + usuario.comision_por_red + usuario.bono_liderazgo;
     });
 
