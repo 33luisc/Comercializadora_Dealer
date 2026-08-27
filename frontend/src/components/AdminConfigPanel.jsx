@@ -301,61 +301,6 @@ export default function AdminConfigPanel({ onConfigSaved, setSuccessMsg, setErro
           </div>
         </div>
 
-        {/* TABLA INDEPENDIENTE: SPREAD POR RED */}
-        <div style={{ marginBottom: '28px' }}>
-          <h4 style={{ fontSize: '12px', fontWeight: '800', color: '#4f46e5', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '16px' }}>
-            3. Spread por Red (Diferencial)
-          </h4>
-
-          {/* Mensaje Aclaratorio */}
-          <div style={{ 
-            backgroundColor: '#eef2ff', 
-            border: '1px solid #c7d2fe', 
-            borderRadius: '12px', 
-            padding: '12px 16px', 
-            marginBottom: '16px',
-            fontSize: '13px',
-            color: '#312e81',
-            lineHeight: '1.5'
-          }}>
-            💡 <strong>¿Cómo se interpreta el Spread por Red?</strong>
-            <br />
-            El valor indicado en la columna <em>Spread Restante en Red</em> representa la fracción de comisión que <strong>queda disponible</strong> para que los patrocinadores superiores (up-lines) absorban mediante diferencial.
-            <div style={{ marginTop: '4px', fontSize: '11px', color: '#4338ca', fontWeight: '600' }}>
-              • Ejemplo: Si un afiliado es <strong>Nivel 1 (1/6)</strong>, retiene su 1/6 y deja <strong>3/6 disponibles</strong> para que un patrocinador <strong>Nivel 4 (4/6)</strong> le absorba la diferencia (4/6 - 1/6 = 3/6).
-            </div>
-          </div>
-
-          <div style={{ overflowX: 'auto', borderRadius: '14px', border: '1px solid #f3f4f6' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
-              <thead>
-                <tr style={{ backgroundColor: '#f9fafb', borderBottom: '1px solid #e5e7eb', color: '#4b5563', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  <th style={{ padding: '12px 16px', fontWeight: '700' }}>Nivel</th>
-                  <th style={{ padding: '12px 16px', fontWeight: '700' }}>Spread Restante en Red (Fracción)</th>
-                </tr>
-              </thead>
-              <tbody>
-                {niveles.map((n, idx) => (
-                  <tr key={n.nivel} style={{ borderBottom: idx < niveles.length - 1 ? '1px solid #f3f4f6' : 'none' }}>
-                    <td style={{ padding: '12px 16px', fontWeight: '800', color: '#111827' }}>
-                      <span style={{ backgroundColor: '#eef2ff', color: '#4f46e5', padding: '4px 10px', borderRadius: '8px', fontSize: '12px' }}>
-                        Nivel {n.nivel}
-                      </span>
-                    </td>
-                    <td style={{ padding: '12px 16px' }}>
-                      <FractionInput
-                        value={n.spread_red}
-                        onChange={(val) => handleNivelChange(idx, 'spread_red', val)}
-                        style={{ ...inputStyle, width: '110px' }}
-                      />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
         <div style={{ display: 'flex', justifyContent: 'flex-end', paddingTop: '16px', borderTop: '1px solid #f3f4f6' }}>
           <button
             type="submit"
