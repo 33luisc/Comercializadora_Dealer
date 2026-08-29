@@ -365,7 +365,8 @@ function MembersTable({
                 const esActivo = a.estado === 'Activo';
                 const isHovered = hoveredRow === a.id;
                 const cupos = a.cupos_libres ?? 15;
-                const compradores = a.compradores_en_red || 0;
+                const compradoresDirectos = a.compradores_directos || 0;
+                const compradoresRed = a.compradores_en_red || 0;
 
                 return (
                   <tr 
@@ -509,21 +510,21 @@ function MembersTable({
 
                     {/* Compradores */}
                     {!estaOculta('compradores') && (
-                      <td style={{ padding: '12px', textAlign: 'center', whiteSpace: 'nowrap' }}>
-                        <span style={{ 
-                          backgroundColor: compradores > 0 ? '#f0fdf4' : '#f8fafc', 
-                          color: compradores > 0 ? '#475871':'#640000', 
-                          border: `1px solid ${compradores > 0 ? '#9f9e9b' : '#e2e8f0'}`,
-                          padding: '4px 10px', 
-                          borderRadius: '20px', 
-                          fontSize: '11px',
-                          fontWeight: '600',
-                          display: 'inline-block'
-                        }}>
-                          {compradores} comprador{compradores !== 1 ? 'es' : ''}
-                        </span>
-                      </td>
-                    )}
+                    <td style={{ padding: '12px', textAlign: 'center', whiteSpace: 'nowrap' }}>
+                      <span style={{ 
+                        backgroundColor: compradoresDirectos > 0 ? '#f0fdf4' : '#f8fafc', 
+                        color: compradoresDirectos > 0 ? '#475871' : '#640000', 
+                        border: `1px solid ${compradoresDirectos > 0 ? '#9f9e9b' : '#e2e8f0'}`,
+                        padding: '4px 10px', 
+                        borderRadius: '20px', 
+                        fontSize: '11px',
+                        fontWeight: '600',
+                        display: 'inline-block'
+                      }}>
+                        {compradoresDirectos} Directos ({compradoresRed} Red)
+                      </span>
+                    </td>
+                  )}
 
                     {/* Estado */}
                     {!estaOculta('estado') && (

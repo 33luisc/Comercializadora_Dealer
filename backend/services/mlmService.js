@@ -62,6 +62,9 @@ function procesarCalculosMLMDinamico(afiliados, config) {
         usuario.compradores_en_red = descendientes.filter(sub => (Number(sub.utilidad_propia) || 0) > 0).length;
 
         const directos = afiliados.filter(sub => String(sub.id_patrocinador) === String(usuario.id));
+        // Métricas separadas para el frontend
+        usuario.compradores_directos = directos.filter(sub => (Number(sub.utilidad_propia) || 0) > 0).length;
+        usuario.compradores_en_red = descendientes.filter(sub => (Number(sub.utilidad_propia) || 0) > 0).length;
         const limiteDirectos = general.limite_directos_bono || 15;
         usuario.cupos_libres = Math.max(0, limiteDirectos - directos.length);
 
