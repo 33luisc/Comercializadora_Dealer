@@ -134,6 +134,7 @@ function App() {
             onCierreMes={handleCierreMes}
             onCargarPeriodoHistorico={cargarPeriodoHistorico} 
             onCargarDatos={cargarDatos}
+            afiliados={afiliados} 
             datosHistoricos={datosHistoricos}
           />
         )}

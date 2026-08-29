@@ -6,10 +6,14 @@ export function useDashboardData() {
   // Estados de datos primarios
   const [afiliados, setAfiliados] = useState([]);
   const [rentabilidad, setRentabilidad] = useState({
-    utilidadGlobal: 0, comisionesPagadas: 0, margenLibre: 0, porcentajeRepartido: 0
+    utilidadGlobal: 0,
+    comisionesPagadas: 0,
+    bonificacionesPagadas: 0,
+    margenLibre: 0,
+    porcentajeRepartido: 0
   });
   const [periodoCierre, setPeriodoCierre] = useState('');
-  
+
   // Estados de notificaciones
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
@@ -19,14 +23,14 @@ export function useDashboardData() {
   const [selectedAfiliado, setSelectedAfiliado] = useState(null);
   const [transData, setTransData] = useState({ monto: '', descripcion: '' });
 
-  const [verHistorico, setVerHistorico] = useState(false); 
-  const [datosHistoricos, setDatosHistoricos] = useState([]); 
+  const [verHistorico, setVerHistorico] = useState(false);
+  const [datosHistoricos, setDatosHistoricos] = useState([]);
 
-  const [verBitacora, setVerBitacora] = useState(false); 
-  const [afiliadoSeleccionadoBitacora, setAfiliadoSeleccionadoBitacora] = useState(null); 
+  const [verBitacora, setVerBitacora] = useState(false);
+  const [afiliadoSeleccionadoBitacora, setAfiliadoSeleccionadoBitacora] = useState(null);
   const [listaTransacciones, setListaTransacciones] = useState([]);
 
-  // Autolimpiar éxito en 4 segundos
+  // Autolimpiar mensajes de éxito en 4 segundos
   useEffect(() => {
     if (successMsg) {
       const timer = setTimeout(() => setSuccessMsg(''), 4000);
@@ -34,7 +38,7 @@ export function useDashboardData() {
     }
   }, [successMsg]);
 
-  // Carga inicial de datos y mes por defecto
+  // Carga inicial de datos y definición de periodo predeterminado
   useEffect(() => {
     cargarDatos();
     const fecha = new Date();
@@ -42,28 +46,36 @@ export function useDashboardData() {
     setPeriodoCierre(`${fecha.getFullYear()}-${mes}`);
   }, []);
 
-  // Lógica de negocio (Funciones API)
+  // Carga de datos en tiempo real (mes activo)
   const cargarDatos = async () => {
     try {
       const data = await apiService.obtenerDatosIniciales();
-      setAfiliados(data.afiliados);
-      setRentabilidad(data.rentabilidad);
+      setAfiliados(Array.isArray(data.afiliados) ? data.afiliados : []);
+      setRentabilidad(data.rentabilidad || {});
     } catch (error) {
       console.error("Error conectando con la API:", error);
+      setErrorMsg("Error al conectar con el servidor.");
     }
   };
 
+  // Carga y normalización de periodo histórico guardado
   const cargarPeriodoHistorico = async (periodo) => {
     if (!periodo) return;
     try {
       setErrorMsg('');
       const data = await apiService.consultarHistorico(periodo);
-      if (data.length === 0) {
+
+      // Extrae siempre un arreglo válido sin importar si la API responde con un objeto o un array
+      const listaExtraida = Array.isArray(data)
+        ? data
+        : (data?.afiliados || data?.usuarios || []);
+
+      if (listaExtraida.length === 0) {
         alert(`No se encontraron registros guardados para el periodo ${periodo}`);
         setVerHistorico(false);
-        cargarDatos(); 
+        cargarDatos();
       } else {
-        setDatosHistoricos(data);
+        setDatosHistoricos(listaExtraida);
         setVerHistorico(true);
       }
     } catch (error) {
@@ -72,13 +84,14 @@ export function useDashboardData() {
     }
   };
 
+  // Registro de nuevo afiliado
   const handleRegisterAfiliado = async (e, formData, setFormData) => {
     e.preventDefault();
-    setErrorMsg(''); setSuccessMsg('');
+    setErrorMsg('');
+    setSuccessMsg('');
     try {
       await apiService.registrarAfiliado(formData);
-      
-      setSuccessMsg(`Afiliado "${formData.nombre} ${formData.apellido}" registrado con éxito.`);
+      setSuccessMsg(`Afiliado "${formData.nombre} ${formData.apellido || ''}" registrado con éxito.`);
       
       setFormData({
         nombre: '',
@@ -88,24 +101,32 @@ export function useDashboardData() {
         correo: '',
         id_patrocinador: ''
       });
-      
+
       cargarDatos();
     } catch (error) {
       setErrorMsg(error.message);
     }
   };
 
+  // Edición de información del afiliado
   const handleUpdateAfiliado = async (datosActualizados) => {
-  setErrorMsg(''); setSuccessMsg('');
-  try {
-    await apiService.actualizarAfiliado(datosActualizados.id, datosActualizados);
-    setSuccessMsg('Afiliado actualizado correctamente.');
-    cargarDatos();
-  } catch (error) {
-    setErrorMsg(error.message);
-  }
+    setErrorMsg('');
+    setSuccessMsg('');
+    try {
+      await apiService.actualizarAfiliado(datosActualizados.id, datosActualizados);
+      setSuccessMsg('Afiliado actualizado correctamente.');
+      
+      if (verHistorico) {
+        cargarPeriodoHistorico(periodoCierre);
+      } else {
+        cargarDatos();
+      }
+    } catch (error) {
+      setErrorMsg(error.message);
+    }
   };
 
+  // Agregar utilidad / compra
   const handleAddTransaccion = async (e) => {
     e.preventDefault();
     setErrorMsg('');
@@ -119,9 +140,11 @@ export function useDashboardData() {
     }
   };
 
+  // Ejecutar congelamiento y cierre de mes
   const handleCierreMes = async () => {
     if (window.confirm(`¿Estás seguro de cerrar el periodo ${periodoCierre}? Esto congelará las comisiones y reiniciará el mes a $0.`)) {
-      setErrorMsg(''); setSuccessMsg('');
+      setErrorMsg('');
+      setSuccessMsg('');
       try {
         const data = await apiService.ejecutarCierre(periodoCierre);
         setSuccessMsg(data.message);
@@ -132,9 +155,11 @@ export function useDashboardData() {
     }
   };
 
+  // Eliminar afiliado
   const handleDelete = async (id) => {
     if (window.confirm("¿Deseas eliminar este afiliado de la red?")) {
-      setErrorMsg(''); setSuccessMsg('');
+      setErrorMsg('');
+      setSuccessMsg('');
       try {
         await apiService.eliminarAfiliado(id);
         setSuccessMsg('Afiliado removido con éxito.');
@@ -145,6 +170,7 @@ export function useDashboardData() {
     }
   };
 
+  // Cargar historial de compras/transacciones por usuario
   const cargarBitacoraAfiliado = async (afiliado) => {
     try {
       setErrorMsg('');
