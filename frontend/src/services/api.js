@@ -31,7 +31,7 @@ export const apiService = {
     return data;
   },
 
-  // NUEVO MÉTODO AGREGADO: Edición / Actualización de afiliado
+  // Edición / Actualización de afiliado
   async actualizarAfiliado(id, datosActualizados) {
     const token = sessionStorage.getItem('adminToken');
     const headers = {
@@ -58,6 +58,24 @@ export const apiService = {
     const data = await res.json();
     if (!res.ok) {
       throw new Error(data.error || data.message || 'Error al actualizar el afiliado.');
+    }
+    return data;
+  },
+
+  // Verificación de contraseña de administrador para modales/confirmaciones
+  async verificarPassword(password, usuario = 'admin') {
+    const res = await fetch(`${API_BASE}/auth/verify-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        usuario: usuario,
+        password: password
+      })
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error || data.message || 'Contraseña incorrecta o error de verificación.');
     }
     return data;
   },

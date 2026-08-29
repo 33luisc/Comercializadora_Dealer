@@ -62,3 +62,31 @@ exports.cambiarClave = (req, res) => {
         });
     });
 };
+
+exports.verificarPassword = (req, res) => {
+    // Si envías el 'usuario' desde el frontend (o desde la sesión/token):
+    const { usuario, password } = req.body;
+
+    if (!password) {
+        return res.status(400).json({ error: 'La contraseña es requerida.' });
+    }
+
+    // Si no mandas usuario en el body, se consulta por el usuario por defecto o del token
+    const usuarioABuscar = usuario ? usuario.trim() : 'admin'; 
+
+    db.get(`SELECT * FROM usuarios_admin WHERE usuario = ?`, [usuarioABuscar], (err, user) => {
+        if (err) return res.status(500).json({ error: err.message });
+        if (!user) {
+            return res.status(404).json({ error: 'Usuario administrador no encontrado.' });
+        }
+
+        // Se usa la función de tu cryptoUtils exactamente igual que en login
+        const esValida = verifyPassword(password, user.salt, user.hash);
+        
+        if (!esValida) {
+            return res.status(401).json({ success: false, error: 'Contraseña incorrecta.' });
+        }
+
+        return res.json({ success: true, message: 'Contraseña verificada correctamente.' });
+    });
+};

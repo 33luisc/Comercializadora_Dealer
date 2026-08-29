@@ -1,11 +1,13 @@
 // src/components/MembersTable.jsx
 import React, { useState, useRef } from 'react';
 import ModificarAfiliado from './ModificarAfiliado';
+import { apiService } from '../services/api'; // 👈 Asegúrate de importar apiService
 
 function MembersTable({ 
   verHistorico, 
   datosHistoricos = [], 
   afiliados = [], 
+  adminUser,
   onOpenBitacora, 
   onOpenTransaccion, 
   onOpenDetalleComision, 
@@ -42,7 +44,11 @@ function MembersTable({
   };
 
   const mostrarTodasColumnas = () => setColumnasOcultas([]);
-
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [pendingAfiliado, setPendingAfiliado] = useState(null);
+  const [passwordInput, setPasswordInput] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+  const [verificando, setVerificando] = useState(false);
   const [afiliadoAEditar, setAfiliadoAEditar] = useState(null);
 
   const tableContainerRef = useRef(null);
@@ -94,7 +100,10 @@ function MembersTable({
   };
 
   const handleStartEdit = (afiliado) => {
-    setAfiliadoAEditar(afiliado);
+    setPendingAfiliado(afiliado);
+    setPasswordInput('');
+    setPasswordError('');
+    setShowPasswordModal(true);
   };
 
   const handleSaveFromModal = (datosActualizados) => {
@@ -102,6 +111,33 @@ function MembersTable({
       onSaveEdit(datosActualizados);
     }
     setAfiliadoAEditar(null);
+  };
+
+  // 🛠️ FUNCIÓN CORREGIDA Y CONECTADA A apiService 🛠️
+  const handleVerifyPassword = async (e) => {
+    e.preventDefault();
+    if (!passwordInput.trim()) return;
+
+    setVerificando(true);
+    setPasswordError('');
+
+    try {
+      // Extrae el nombre de usuario de las props o usa 'admin' por defecto
+      const usernameActual = adminUser?.usuario || adminUser?.username || adminUser?.correo || 'admin';
+
+      // Llamada al método centralizado en api.js que consulta /api/auth/verify-password
+      await apiService.verificarPassword(passwordInput, usernameActual);
+
+      // Si no lanza error, la contraseña es correcta:
+      setShowPasswordModal(false);
+      setAfiliadoAEditar(pendingAfiliado);
+      setPendingAfiliado(null);
+      setPasswordInput('');
+    } catch (err) {
+      setPasswordError(err.message || 'Contraseña incorrecta o error de conexión.');
+    } finally {
+      setVerificando(false);
+    }
   };
 
   const estaOculta = (clave) => columnasOcultas.includes(clave);
@@ -120,7 +156,7 @@ function MembersTable({
       <div style={{ 
         marginBottom: '20px', 
         display: 'flex', 
-        justify: 'space-between', 
+        justifyContent: 'space-between',
         alignItems: 'center', 
         gap: '12px', 
         flexWrap: 'wrap' 
@@ -356,9 +392,9 @@ function MembersTable({
           <tbody>
             {listaFiltrada.length === 0 ? (
               <tr>
-                <td colSpan="11" style={{ padding: '32px', textAlign: 'center', color: '#94a3b8', fontSize: '13px' }}>
-                  No se encontraron miembros.
-                </td>
+                <td colSpan={11} style={{ padding: '32px', textAlign: 'center', color: '#94a3b8', fontSize: '13px' }}>
+                No se encontraron miembros.
+              </td>
               </tr>
             ) : (
               listaFiltrada.map(a => {
@@ -680,12 +716,87 @@ function MembersTable({
         </table>
       </div>
 
+      {/* Modal de Contraseña */}
+      {showPasswordModal && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
+          backgroundColor: 'rgba(15, 23, 42, 0.4)', backdropFilter: 'blur(4px)',
+          display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000
+        }}>
+          <div style={{
+            backgroundColor: '#ffffff', padding: '24px', borderRadius: '16px',
+            width: '100%', maxWidth: '360px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)'
+          }}>
+            <h3 style={{ margin: '0 0 8px 0', fontSize: '16px', color: '#0f172a', fontWeight: '700' }}>
+              🔒 Confirmación de Seguridad
+            </h3>
+            <p style={{ margin: '0 0 16px 0', fontSize: '13px', color: '#64748b', lineHeight: '1.4' }}>
+              Ingresa tu contraseña para editar a <strong>{`${pendingAfiliado?.nombre || ''} ${pendingAfiliado?.apellido || ''}`.trim()}</strong>.
+            </p>
+
+            <form onSubmit={handleVerifyPassword}>
+              <input
+                type="password"
+                placeholder="Contraseña de administrador"
+                value={passwordInput}
+                onChange={(e) => setPasswordInput(e.target.value)}
+                autoFocus
+                disabled={verificando}
+                style={{
+                  width: '100%', padding: '10px 14px', fontSize: '13px',
+                  border: `1px solid ${passwordError ? '#ef4444' : '#cbd5e1'}`,
+                  borderRadius: '10px', outline: 'none', boxSizing: 'border-box', marginBottom: '8px'
+                }}
+              />
+              {passwordError && (
+                <span style={{ color: '#ef4444', fontSize: '12px', display: 'block', marginBottom: '12px' }}>
+                  {passwordError}
+                </span>
+              )}
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '16px' }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowPasswordModal(false);
+                    setPendingAfiliado(null);
+                    setPasswordInput('');
+                    setPasswordError('');
+                  }}
+                  disabled={verificando}
+                  style={{
+                    backgroundColor: '#f1f5f9', border: 'none', color: '#475569',
+                    padding: '8px 14px', borderRadius: '8px', fontSize: '12px', fontWeight: '600', cursor: 'pointer'
+                  }}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={verificando}
+                  style={{
+                    backgroundColor: '#4f46e5', border: 'none', color: '#ffffff',
+                    padding: '8px 14px', borderRadius: '8px', fontSize: '12px', fontWeight: '600', cursor: 'pointer',
+                    opacity: verificando ? 0.7 : 1
+                  }}
+                >
+                  {verificando ? 'Verificando...' : 'Confirmar'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Edición */}
       {afiliadoAEditar && (
-        <ModificarAfiliado
-          afiliado={afiliadoAEditar}
-          afiliados={afiliados}
-          onClose={() => setAfiliadoAEditar(null)}
-          onSave={handleSaveFromModal}
+        <ModificarAfiliado 
+          afiliado={afiliadoAEditar} 
+          onSave={(datos) => {
+            if (onSaveEdit) onSaveEdit(datos);
+            setAfiliadoAEditar(null);
+          }} 
+          onClose={() => setAfiliadoAEditar(null)} 
         />
       )}
     </div>

@@ -190,6 +190,7 @@ function App() {
             <div className="w-full flex-1 min-w-0 bg-white p-5 rounded-2xl box-border overflow-hidden">
               {vistaActiva === 'tabla' ? (
                 <MembersTable 
+                  adminUser={adminUser}
                   verHistorico={verHistorico} 
                   datosHistoricos={datosHistoricos} 
                   afiliados={afiliados}
@@ -197,7 +198,7 @@ function App() {
                   onDelete={handleDelete}
                   onOpenTransaccion={(a) => { setSelectedAfiliado(a); setModalOpen(true); }}
                   onOpenDetalleComision={(a) => setUsuarioComisionSeleccionado(a)}
-                  onSaveEdit={handleUpdateAfiliado} // 👈 2. Conectamos la prop con el handler
+                  onSaveEdit={handleUpdateAfiliado} // 2. Conectamos la prop con el handler
                 />
               ) : (
                 <NetworkTree 
