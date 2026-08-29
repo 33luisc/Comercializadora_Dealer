@@ -44,7 +44,7 @@ function DashboardControls({
       {/* TARJETAS DE MÉTRICAS */}
       <div style={{ 
         display: 'grid', 
-        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
+        gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', 
         gap: '12px', 
         marginBottom: '16px' 
       }}>
@@ -62,20 +62,42 @@ function DashboardControls({
           </div>
         </div>
 
-        {/* Tarjeta 2 */}
+        {/* Tarjeta 2: Comisiones */}
         <div style={{ backgroundColor: '#ffffff', padding: '12px 16px', borderRadius: '12px', border: '1px solid #f3f4f6', boxShadow: '0 1px 2px rgba(0,0,0,0.02)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
-            <p style={{ margin: 0, fontSize: '10px', color: '#9ca3af', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Comisiones</p>
+            <p style={{ margin: 0, fontSize: '10px', color: '#9ca3af', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              Comisiones
+            </p>
             <p style={{ margin: '2px 0 0 0', fontSize: '18px', fontWeight: 'bold', color: '#dc2626' }}>
               ${Number(rentabilidad?.comisionesPagadas || 0).toLocaleString('es-CO', { maximumFractionDigits: 0 })}
             </p>
           </div>
           <div style={{ padding: '8px', backgroundColor: '#fef2f2', color: '#dc2626', borderRadius: '10px', display: 'flex' }}>
-            <svg style={{ width: '16px', height: '16px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
+            <svg style={{ width: '16px', height: '16px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
+            </svg>
           </div>
         </div>
 
-        {/* Tarjeta 3 */}
+        {/* Tarjeta 3: Bonificaciones */}
+        <div style={{ backgroundColor: '#ffffff', padding: '12px 16px', borderRadius: '12px', border: '1px solid #f3f4f6', boxShadow: '0 1px 2px rgba(0,0,0,0.02)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div>
+            <p style={{ margin: 0, fontSize: '10px', color: '#9ca3af', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              Bonificaciones
+            </p>
+            <p style={{ margin: '2px 0 0 0', fontSize: '18px', fontWeight: 'bold', color: '#2563eb' }}>
+              ${Number(rentabilidad?.bonificacionesPagadas || 0).toLocaleString('es-CO', { maximumFractionDigits: 0 })}
+            </p>
+          </div>
+          <div style={{ padding: '8px', backgroundColor: '#eff6ff', color: '#2563eb', borderRadius: '10px', display: 'flex' }}>
+            {/* Ícono distintivo de medalla/premio para las bonificaciones */}
+            <svg style={{ width: '16px', height: '16px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V6a2 2 0 10-2 2h2zm8 0h-3M3 8h3m14 0a2 2 0 012 2v10a2 2 0 01-2 2H4a2 2 0 01-2-2V10a2 2 0 012-2h16z" />
+            </svg>
+          </div>
+        </div>
+
+        {/* Tarjeta 4 */}
         <div style={{ backgroundColor: '#ffffff', padding: '12px 16px', borderRadius: '12px', border: '1px solid #f3f4f6', boxShadow: '0 1px 2px rgba(0,0,0,0.02)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
             <p style={{ margin: 0, fontSize: '10px', color: '#9ca3af', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Margen Neto</p>
@@ -88,7 +110,7 @@ function DashboardControls({
           </div>
         </div>
 
-        {/* Tarjeta 4 */}
+        {/* Tarjeta 5 */}
         <div style={{ backgroundColor: '#ffffff', padding: '12px 16px', borderRadius: '12px', border: '1px solid #f3f4f6', boxShadow: '0 1px 2px rgba(0,0,0,0.02)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
             <p style={{ margin: 0, fontSize: '10px', color: '#9ca3af', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Payout Red</p>
@@ -99,7 +121,7 @@ function DashboardControls({
           </div>
         </div>
         
-        {/* Tarjeta 5: Sin Nivel 1 */}
+        {/* Tarjeta 6: Sin Nivel 1 */}
         <div style={{ backgroundColor: '#ffffff', padding: '12px 16px', borderRadius: '12px', border: '1px solid #f3f4f6', boxShadow: '0 1px 2px rgba(0,0,0,0.02)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
             <p style={{ margin: 0, fontSize: '10px', color: '#9ca3af', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Monto Nivel 0</p>

@@ -117,20 +117,29 @@ exports.obtenerRentabilidad = async (req, res) => {
         const config = await obtenerConfiguracionCompletaBD();
         const rows = await dbAll(query);
         
-        // CORRECCIÓN 2: Se recibe como Array estándar
         const afiliados = procesarCalculosMLMDinamico(rows, config);
         
         const utilidadGlobal = afiliados.reduce((sum, u) => sum + u.utilidad_propia, 0);
-        const comisionesPagadas = afiliados.reduce((sum, u) => sum + u.comision_total, 0);
-        const margenLibre = utilidadGlobal - comisionesPagadas;
-        const porcentajeRepartido = utilidadGlobal > 0 ? (comisionesPagadas / utilidadGlobal) * 100 : 0;
+        
+        // --- SEPARACIÓN DE CONCEPTOS ---
+        // 1. Comisiones puras (propia + red)
+        const comisionesPagadas = afiliados.reduce((sum, u) => sum + (u.comision_propia + u.comision_por_red), 0);
+        
+        // 2. Bonificaciones (Bono de liderazgo)
+        const bonificacionesPagadas = afiliados.reduce((sum, u) => sum + (u.bono_liderazgo || 0), 0);
+        
+        // Total repartido entre comisiones y bonos
+        const totalDistribucion = comisionesPagadas + bonificacionesPagadas;
+        
+        const margenLibre = utilidadGlobal - totalDistribucion;
+        const porcentajeRepartido = utilidadGlobal > 0 ? (totalDistribucion / utilidadGlobal) * 100 : 0;
 
-        // CORRECCIÓN 3: Leemos el monto acumulado directamente del primer elemento del array (inyectado previamente en el servicio)
         const montoSinNivel1 = afiliados.length > 0 ? (afiliados[0]._meta_monto_sin_nivel1 || 0) : 0;
 
         res.json({
             utilidadGlobal,
-            comisionesPagadas,
+            comisionesPagadas,      // Envía solo las comisiones
+            bonificacionesPagadas,  // Envía solo las bonificaciones/bonos
             margenLibre,
             porcentajeRepartido: porcentajeRepartido.toFixed(2),
             porcentajeRetenido: (100 - porcentajeRepartido).toFixed(2),
