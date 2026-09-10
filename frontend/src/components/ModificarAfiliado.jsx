@@ -76,8 +76,13 @@ export default function ModificarAfiliado({
     }
   };
 
-  // Filtrar la lista de patrocinadores para no permitirse seleccionar a sí mismo ni generar ciclos directos
-  const posiblesPatrocinadores = afiliados.filter(a => a.id !== afiliado.id);
+  // Garantizar que 'afiliados' sea siempre un arreglo válido
+  const listaAfiliadosValida = Array.isArray(afiliados) ? afiliados : [];
+
+  // Filtrar asegurando la conversión explícita a Number para evitar fallos por comparación estricta (string vs number)
+  const posiblesPatrocinadores = listaAfiliadosValida.filter(
+    a => Number(a.id) !== Number(afiliado.id)
+  );
 
   return (
     <div style={{
