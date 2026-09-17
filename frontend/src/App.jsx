@@ -203,8 +203,11 @@ function App() {
               ) : (
                 <NetworkTree 
                   afiliados={afiliados} 
-                  onOpenDetalleComision={(a) => setUsuarioComisionSeleccionado(a)} 
-                />
+                  verHistorico={verHistorico}
+                  onOpenBitacora={cargarBitacoraAfiliado}
+                  onOpenTransaccion={(a) => { setSelectedAfiliado(a); setModalOpen(true); }}
+                  onOpenDetalleComision={(a) => setUsuarioComisionSeleccionado(a)}
+                  />
               )}
             </div>
 

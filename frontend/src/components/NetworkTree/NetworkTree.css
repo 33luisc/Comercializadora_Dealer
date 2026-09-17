@@ -1,0 +1,87 @@
+/* src/components/NetworkTree/NetworkTree.css */
+
+/* Estructura del organigrama vertical */
+.tree-container {
+  display: flex;
+  justify-content: center;
+  padding: 20px 0;
+  width: max-content;
+  min-width: 100%;
+}
+
+.tree-node-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+}
+
+/* Lista horizontal de hijos */
+.tree-children-container {
+  display: flex;
+  justify-content: center;
+  position: relative;
+  padding-top: 24px;
+}
+
+/* Línea vertical que baja desde el padre hacia los hijos */
+.tree-children-container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 2px;
+  height: 24px;
+  background-color: #cbd5e1;
+  transform: translateX(-50%);
+}
+
+/* Envoltorio individual para cada hijo */
+.tree-child-item {
+  position: relative;
+  padding: 0 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Línea horizontal colectiva sobre los hijos y codos verticales hacia cada hijo */
+.tree-child-item::before,
+.tree-child-item::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  width: 50%;
+  height: 24px;
+  border-top: 2px solid #cbd5e1;
+}
+
+.tree-child-item::before {
+  left: 0;
+}
+
+.tree-child-item::after {
+  right: 0;
+  border-left: 2px solid #cbd5e1;
+}
+
+/* Ocultar sobrantes de líneas en el primer y último hijo */
+.tree-child-item:first-child::before {
+  border: none;
+}
+
+.tree-child-item:last-child::after {
+  border-top: none;
+}
+
+/* Caso especial: cuando hay un solo hijo */
+.tree-child-item:only-child::before,
+.tree-child-item:only-child::after {
+  border-top: none !important;
+}
+
+.tree-child-item:only-child::after {
+  border-left: 2px solid #cbd5e1 !important;
+  left: 50%;
+  width: 0;
+}

@@ -4,7 +4,13 @@ import NodoArbol from './NodoArbol';
 import { useDragScroll } from './useDragScroll';
 import { limpiarTexto } from './utils/treeHelpers';
 
-function NetworkTree({ afiliados = [], onOpenDetalleComision }) {
+function NetworkTree({ 
+  afiliados = [], 
+  onOpenDetalleComision, 
+  onOpenBitacora, 
+  onOpenTransaccion, 
+  verHistorico = false 
+}) {
   const [filtro, setFiltro] = useState('');
   
   // Usamos un objeto con timestamp para asegurar que el efecto React detecte siempre los clics
@@ -140,16 +146,20 @@ function NetworkTree({ afiliados = [], onOpenDetalleComision }) {
             {filtro ? 'No se encontraron miembros de la red con el criterio ingresado.' : 'No hay nodos raíz registrados.'}
           </div>
         ) : (
-          <div style={{ display: 'inline-block', minWidth: '100%', paddingRight: '20px', boxSizing: 'border-box' }}>
+          <div className="tree-container">
             {raices.map(raiz => (
-              <NodoArbol 
+                <NodoArbol 
                 key={raiz.id} 
                 miembro={raiz} 
-                todosLosAfiliados={afiliadosVisibles} 
+                todosLosAfiliados={afiliados} 
                 controlExpandir={controlExpandir}
                 coincidenciaIds={coincidenciaIds}
                 onOpenDetalleComision={onOpenDetalleComision}
+                onOpenBitacora={onOpenBitacora}
+                onOpenTransaccion={onOpenTransaccion}
+                verHistorico={verHistorico}
                 esRaiz={true}
+                nivel={0}
               />
             ))}
           </div>
