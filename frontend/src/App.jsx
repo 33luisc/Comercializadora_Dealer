@@ -51,16 +51,7 @@ function App() {
     setCargandoSesion(false);
   }, []);
 
-  // 2. Heartbeat para indicar al Backend que la pestaña del navegador sigue abierta
-  useEffect(() => {
-    const interval = setInterval(() => {
-      fetch('http://localhost:4000/api/ping').catch(() => {});
-    }, 2000);
-
-    return () => clearInterval(interval);
-  }, []);
-
-  // Manejador del Cierre de Sesión Manual
+  // 2. Manejador del Cierre de Sesión Manual
   const handleLogout = () => {
     sessionStorage.removeItem('adminToken');
     sessionStorage.removeItem('adminUser');

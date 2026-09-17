@@ -1,7 +1,11 @@
 const sqlite3 = require('sqlite3').verbose();
+const path = require('path');
 const { hashPassword } = require('../utils/cryptoUtils');
 
-const db = new sqlite3.Database('./comercializadora.db', (err) => {
+// Garantiza que el archivo se guarde e identifique dentro del directorio backend
+const dbPath = path.join(__dirname, '..', 'comercializadora.db');
+
+const db = new sqlite3.Database(dbPath, (err) => {
     if (err) {
         console.error('Error al abrir la base de datos:', err.message);
     } else {

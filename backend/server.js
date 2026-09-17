@@ -16,33 +16,6 @@ const PORT = process.env.PORT || 4000;
 app.use(cors());
 app.use(express.json());
 
-// --- LÓGICA DE AUTO-CIERRE (HEARTBEAT) ---
-let ultimoHeartbeat = Date.now();
-
-app.get('/api/ping', (req, res) => {
-    ultimoHeartbeat = Date.now();
-    res.sendStatus(200);
-});
-
-// Comprobación cada 5 segundos
-setInterval(() => {
-    const tiempoInactivo = Date.now() - ultimoHeartbeat;
-
-    // Damos una tolerancia de 35 segundos (350000 ms)
-    if (tiempoInactivo > 350000) {
-        console.log('🔴 Navegador cerrado. Finalizando base de datos...');
-
-        db.close((err) => {
-            if (err) console.error('Error al cerrar la BD:', err.message);
-            else console.log('🔒 Conexión a la base de datos SQLite cerrada.');
-
-            // Cierra el proceso actual de Node limpiamente sin matar todo el sistema
-            process.exit(0);
-        });
-    }
-}, 5000);
-// ------------------------------------------
-
 // Montar Rutas API (Preservando 100% las URLs originales para el Frontend)
 app.use('/api/auth', authRoutes);
 app.use('/api/configuracion', configRoutes);
