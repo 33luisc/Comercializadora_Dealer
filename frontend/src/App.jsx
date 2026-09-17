@@ -7,7 +7,7 @@ import TransactionModal from './components/TransactionModal';
 import LogModal from './components/LogModal';
 import ModalDetalleComision from './components/ModalDetalleComision';
 import MembersTable from './components/MembersTable';
-import NetworkTree from './components/NetworkTree';
+import NetworkTree from './components/NetworkTree/NetworkTree';
 import DashboardControls from './components/DashboardControls';
 import Header from './components/Header';
 import LoginView from './components/LoginView';
