@@ -20,38 +20,8 @@ function DashboardControls({
   // Estado local para controlar la apertura/cierre del modal de bonificaciones
   const [modalBonificacionData, setModalBonificacionData] = useState(null);
 
-  // ---------------------------------------------------------------------
-  // CÁLCULO DINÁMICO DEL RESUMEN (Histórico vs. Mes Activo)
-  // ---------------------------------------------------------------------
-  let resumenAMostrar = rentabilidad;
-
-  if (verHistorico && datosHistoricos.length > 0) {
-    const utilidadGlobal = datosHistoricos.reduce(
-      (sum, item) => sum + (Number(item.utilidad_acumulada || item.utilidad_propia) || 0), 0
-    );
-    const comisionesPagadas = datosHistoricos.reduce(
-      (sum, item) => sum + (Number(item.comision_total) || 0), 0
-    );
-    const bonificacionesPagadas = datosHistoricos.reduce(
-      (sum, item) => sum + (Number(item.bono_liderazgo || item.bonificaciones) || 0), 0
-    );
-    const margenLibre = utilidadGlobal - comisionesPagadas - bonificacionesPagadas;
-    const porcentajeRepartido = utilidadGlobal > 0 
-      ? ((comisionesPagadas / utilidadGlobal) * 100).toFixed(2) 
-      : 0;
-    const montoSinNivel1 = datosHistoricos
-      .filter(item => Number(item.nivel) === 0)
-      .reduce((sum, item) => sum + (Number(item.comision_total || item.utilidad_acumulada) || 0), 0);
-
-    resumenAMostrar = {
-      utilidadGlobal,
-      comisionesPagadas,
-      bonificacionesPagadas,
-      margenLibre,
-      porcentajeRepartido,
-      montoSinNivel1
-    };
-  }
+  // Usamos las métricas recibidas por props (calculadas dinámicamente en el hook)
+  const resumenAMostrar = rentabilidad || {};
 
   // Obtener el mes actual en formato YYYY-MM para restricciones de entrada
   const hoy = new Date();
@@ -136,7 +106,7 @@ function DashboardControls({
               boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'space-between',
+              justify: 'space-between',
               cursor: 'pointer',
               font: 'inherit'
             }}
@@ -198,7 +168,7 @@ function DashboardControls({
         {/* ACCIONES Y PERIODO CONTABLE */}
         <div style={{ 
           display: 'flex', 
-          justifyContent: 'space-between', 
+          justify: 'space-between', 
           alignItems: 'center', 
           flexWrap: 'wrap', 
           gap: '12px', 
@@ -269,16 +239,42 @@ function DashboardControls({
               <>
                 <button 
                   type="button"
-                  onClick={() => exportarAExcel(datosHistoricos, periodoCierre)}
-                  style={{ backgroundColor: '#16a34a', border: 'none', color: '#ffffff', fontSize: '12px', fontWeight: 'bold', padding: '8px 14px', borderRadius: '12px', cursor: 'pointer', boxShadow: '0 1px 2px rgba(0,0,0,0.05)', display: 'flex', alignItems: 'center', gap: '4px' }}
+                  onClick={() => exportarAExcel(datosHistoricos, periodoCierre, resumenAMostrar)}
+                  style={{ 
+                    backgroundColor: '#16a34a', 
+                    border: 'none', 
+                    color: '#ffffff', 
+                    fontSize: '12px', 
+                    fontWeight: 'bold', 
+                    padding: '8px 14px', 
+                    borderRadius: '12px', 
+                    cursor: 'pointer', 
+                    boxShadow: '0 1px 2px rgba(0,0,0,0.05)', 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '4px' 
+                  }}
                 >
                   📊 Excel
                 </button>
 
                 <button 
                   type="button"
-                  onClick={() => exportarAPDF(datosHistoricos, periodoCierre)}
-                  style={{ backgroundColor: '#dc2626', border: 'none', color: '#ffffff', fontSize: '12px', fontWeight: 'bold', padding: '8px 14px', borderRadius: '12px', cursor: 'pointer', boxShadow: '0 1px 2px rgba(0,0,0,0.05)', display: 'flex', alignItems: 'center', gap: '4px' }}
+                  onClick={() => exportarAPDF(datosHistoricos, periodoCierre, resumenAMostrar)}
+                  style={{ 
+                    backgroundColor: '#dc2626', 
+                    border: 'none', 
+                    color: '#ffffff', 
+                    fontSize: '12px', 
+                    fontWeight: 'bold', 
+                    padding: '8px 14px', 
+                    borderRadius: '12px', 
+                    cursor: 'pointer', 
+                    boxShadow: '0 1px 2px rgba(0,0,0,0.05)', 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '4px' 
+                  }}
                 >
                   📄 PDF
                 </button>
@@ -316,7 +312,7 @@ function DashboardControls({
       {modalBonificacionData && (
         <ModalDetalleBonificacion
           listaUsuarios={modalBonificacionData} 
-          rentabilidad={rentabilidad}
+          rentabilidad={resumenAMostrar}
           onClose={() => setModalBonificacionData(null)}
         />
       )}

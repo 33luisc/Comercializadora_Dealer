@@ -1,5 +1,5 @@
 // src/hooks/useDashboardData.js
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { apiService } from '../services/api';
 
 export function useDashboardData() {
@@ -10,7 +10,8 @@ export function useDashboardData() {
     comisionesPagadas: 0,
     bonificacionesPagadas: 0,
     margenLibre: 0,
-    porcentajeRepartido: 0
+    porcentajeRepartido: 0,
+    montoSinNivel1: 0
   });
   const [periodoCierre, setPeriodoCierre] = useState('');
 
@@ -61,6 +62,47 @@ export function useDashboardData() {
       setErrorMsg("Error al conectar con el servidor.");
     }
   };
+
+  // CÁLCULO UNIFICADO Y DINÁMICO DEL RESUMEN / TARJETAS SUPERIORES
+  const resumenAMostrar = useMemo(() => {
+    if (verHistorico && datosHistoricos && datosHistoricos.length > 0) {
+      // 1. Utilidad Global en el histórico
+      const utilidadGlobal = datosHistoricos.reduce(
+        (sum, item) => sum + Number(item.utilidad_propia || item.utilidad_acumulada || 0), 0
+      );
+
+      // 2. Comisiones pagadas en el histórico
+      const comisionesPagadas = datosHistoricos.reduce(
+        (sum, item) => sum + (Number(item.comision_propia || 0) + Number(item.comision_por_red || 0)), 0
+      );
+
+      // 3. Bonificaciones en el histórico
+      const bonificacionesPagadas = datosHistoricos.reduce(
+        (sum, item) => sum + Number(item.bono_liderazgo || item.bonificaciones || 0), 0
+      );
+
+      const totalDistribucion = comisionesPagadas + bonificacionesPagadas;
+      const margenLibre = utilidadGlobal - totalDistribucion;
+      const porcentajeRepartido = utilidadGlobal > 0 ? ((totalDistribucion / utilidadGlobal) * 100).toFixed(2) : '0.00';
+
+      // 🎯 CORRECCIÓN: Filtra los de nivel 0 y suma sus utilidades acumuladas
+      const montoSinNivel1 = datosHistoricos
+        .filter(item => Number(item.nivel) === 0)
+        .reduce((sum, item) => sum + Number(item.utilidad_propia || item.utilidad_acumulada || 0), 0);
+
+      return {
+        utilidadGlobal,
+        comisionesPagadas,
+        bonificacionesPagadas,
+        margenLibre,
+        porcentajeRepartido,
+        montoSinNivel1
+      };
+    }
+
+    // Si estamos en el mes activo, retorna las métricas directas calculadas en el backend
+    return rentabilidad;
+  }, [verHistorico, datosHistoricos, rentabilidad]);
 
   // Función explícita para regresar al mes activo y resetear el calendario
   const handleVerMesActivo = () => {
@@ -194,6 +236,7 @@ export function useDashboardData() {
   return {
     afiliados,
     rentabilidad,
+    resumenAMostrar, // Exponemos la métrica calculada
     periodoCierre,
     setPeriodoCierre,
     errorMsg,

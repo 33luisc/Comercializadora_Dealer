@@ -3,30 +3,71 @@ import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
+// Helper local para formatear valores numéricos a moneda de Colombia ($)
+const fmtCOP = (val) => `$${Number(val || 0).toLocaleString('es-CO')}`;
+
 /**
- * Exporta un arreglo de afiliados/histórico a archivo Excel (.xlsx)
+ * Exporta un arreglo de afiliados/histórico a archivo Excel (.xlsx) incluyendo el resumen ejecutivo.
  */
-export const exportarAExcel = (datos, periodo) => {
+export const exportarAExcel = (datos, periodo, resumen = null) => {
   try {
     if (!datos || datos.length === 0) {
       alert("No hay registros para exportar en este período.");
       return;
     }
 
-    const filasFormateadas = datos.map(row => ({
-      "ID Afiliado": row.id_afiliado || row.id,
-      "Nombre Completo": `${row.nombre || ''} ${row.apellido || ''}`.trim(),
-      "Cédula": row.cedula || 'N/A',
-      "Nivel": row.nivel,
-      "Estado": row.estado || 'N/A',
-      "Utilidad Propia ($)": Number(row.utilidad_propia || 0),
-      "Comisión Propia ($)": Number(row.comision_propia || 0),
-      "Comisión Red ($)": Number(row.comision_por_red || 0),
-      "Bono Liderazgo ($)": Number(row.bono_liderazgo || 0),
-      "Comisión Total ($)": Number(row.comision_total || 0)
-    }));
+    const filasHoja = [
+      [`REPORTE DE HISTÓRICO DE CIERRE - PERÍODO: ${periodo}`],
+      [`Fecha de generación: ${new Date().toLocaleDateString('es-CO')}`],
+      []
+    ];
 
-    const worksheet = XLSX.utils.json_to_sheet(filasFormateadas);
+    // 1. Agregar bloque de Resumen Ejecutivo si existe
+    if (resumen) {
+      filasHoja.push(['--- RESUMEN EJECUTIVO Y RENTABILIDAD ---']);
+      filasHoja.push(['Métrica', 'Monto / Valor']);
+      filasHoja.push(['Utilidad Bruta Global', Number(resumen.utilidadGlobal || 0)]);
+      filasHoja.push(['Comisiones Totales Repartidas', Number(resumen.comisionesPagadas || 0)]);
+      filasHoja.push(['Bonificaciones Especiales', Number(resumen.bonificacionesPagadas || 0)]);
+      filasHoja.push(['Margen Neto Disponible', Number(resumen.margenLibre || 0)]);
+      filasHoja.push(['Porcentaje de Payout', `${resumen.porcentajeRepartido || 0}%`]);
+      filasHoja.push(['Monto Acumulado Nivel 0', Number(resumen.montoSinNivel1 || 0)]);
+      filasHoja.push([]);
+    }
+
+    // 2. Encabezados de la tabla de afiliados
+    filasHoja.push(['--- DETALLE DE AFILIADOS Y COMISIONES ---']);
+    filasHoja.push([
+      'ID Afiliado',
+      'Nombre Completo',
+      'Cédula',
+      'Nivel',
+      'Estado',
+      'Utilidad Propia ($)',
+      'Comisión Propia ($)',
+      'Comisión Red ($)',
+      'Bono Liderazgo ($)',
+      'Comisión Total ($)'
+    ]);
+
+    // 3. Filas con los datos de afiliados
+    datos.forEach(row => {
+      filasHoja.push([
+        row.id_afiliado || row.id,
+        `${row.nombre || ''} ${row.apellido || ''}`.trim(),
+        row.cedula || 'N/A',
+        row.nivel ?? 0,
+        row.estado || 'N/A',
+        Number(row.utilidad_acumulada || row.utilidad_propia || 0),
+        Number(row.comision_propia || 0),
+        Number(row.comision_por_red || 0),
+        Number(row.bono_liderazgo || row.bonificaciones || 0),
+        Number(row.comision_total || 0)
+      ]);
+    });
+
+    // 4. Construir y exportar libro
+    const worksheet = XLSX.utils.aoa_to_sheet(filasHoja);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, `Historico_${periodo}`);
 
@@ -38,28 +79,55 @@ export const exportarAExcel = (datos, periodo) => {
 };
 
 /**
- * Exporta un arreglo de afiliados/histórico a archivo PDF (.pdf)
+ * Exporta un arreglo de afiliados/histórico a archivo PDF (.pdf) incluyendo el resumen ejecutivo.
  */
-export const exportarAPDF = (datos, periodo) => {
+export const exportarAPDF = (datos, periodo, resumen = null) => {
   try {
     if (!datos || datos.length === 0) {
       alert("No hay registros para exportar en este período.");
       return;
     }
 
-    // Instancia del documento en horizontal (landscape)
+    // Instancia en formato horizontal (landscape)
     const doc = new jsPDF({ orientation: 'landscape' });
 
-    // Encabezado
+    // Encabezado Principal
     doc.setFontSize(16);
     doc.setTextColor(3, 7, 18);
     doc.text(`Reporte de Histórico de Cierre - Período: ${periodo}`, 14, 15);
 
     doc.setFontSize(10);
     doc.setTextColor(107, 114, 128);
-    doc.text(`Fecha de generación: ${new Date().toLocaleDateString()}`, 14, 22);
+    doc.text(`Fecha de generación: ${new Date().toLocaleDateString('es-CO')}`, 14, 21);
 
-    // Definición de columnas
+    let siguienteY = 26;
+
+    // 1. Agregar Tabla de Resumen Ejecutivo si el parámetro está presente
+    if (resumen) {
+      doc.setFontSize(11);
+      doc.setTextColor(30, 41, 59);
+      doc.text('Resumen Ejecutivo y Rentabilidad Global', 14, siguienteY);
+
+      autoTable(doc, {
+        startY: siguienteY + 3,
+        head: [['Utilidad Bruta', 'Comisiones', 'Bonificaciones', 'Margen Neto', 'Payout %', 'Monto Nivel 0']],
+        body: [[
+          fmtCOP(resumen.utilidadGlobal),
+          fmtCOP(resumen.comisionesPagadas),
+          fmtCOP(resumen.bonificacionesPagadas),
+          fmtCOP(resumen.margenLibre),
+          `${resumen.porcentajeRepartido || 0}%`,
+          fmtCOP(resumen.montoSinNivel1)
+        ]],
+        theme: 'grid',
+        headStyles: { fillColor: [30, 41, 59], textColor: [255, 255, 255], fontStyle: 'bold', halign: 'center' },
+        styles: { fontSize: 8, cellPadding: 2, halign: 'center' }
+      });
+
+      siguienteY = doc.lastAutoTable.finalY + 10;
+    }
+
+    // 2. Definición de columnas de la tabla de afiliados
     const columns = [
       { header: 'ID', dataKey: 'id' },
       { header: 'Nombre Completo', dataKey: 'nombre' },
@@ -72,31 +140,36 @@ export const exportarAPDF = (datos, periodo) => {
       { header: 'Com. Total ($)', dataKey: 'com_total' }
     ];
 
-    // Formateo de las filas
+    // 3. Formateo de las filas
     const rows = datos.map(item => ({
       id: item.id_afiliado || item.id,
       nombre: `${item.nombre || ''} ${item.apellido || ''}`.trim(),
       cedula: item.cedula || 'N/A',
-      nivel: item.nivel,
-      utilidad: `$${Number(item.utilidad_propia || 0).toLocaleString()}`,
-      com_propia: `$${Number(item.comision_propia || 0).toLocaleString()}`,
-      com_red: `$${Number(item.comision_por_red || 0).toLocaleString()}`,
-      bono_lid: `$${Number(item.bono_liderazgo || 0).toLocaleString()}`,
-      com_total: `$${Number(item.comision_total || 0).toLocaleString()}`
+      nivel: item.nivel ?? 0,
+      utilidad: fmtCOP(item.utilidad_acumulada || item.utilidad_propia),
+      com_propia: fmtCOP(item.comision_propia),
+      com_red: fmtCOP(item.comision_por_red),
+      bono_lid: fmtCOP(item.bono_liderazgo || item.bonificaciones),
+      com_total: fmtCOP(item.comision_total)
     }));
 
-    // Invocación directa del plugin autoTable pasando la instancia `doc`
+    // Título de la sección de afiliados
+    doc.setFontSize(11);
+    doc.setTextColor(30, 41, 59);
+    doc.text('Detalle de Afiliados y Red', 14, siguienteY);
+
+    // 4. Renderizado de la tabla principal
     autoTable(doc, {
-      startY: 28,
+      startY: siguienteY + 3,
       columns: columns,
       body: rows,
       theme: 'grid',
       headStyles: { fillColor: [37, 99, 235], textColor: [255, 255, 255], fontStyle: 'bold' },
-      styles: { fontSize: 8, cellPadding: 3 },
+      styles: { fontSize: 8, cellPadding: 2.5 },
       alternateRowStyles: { fillColor: [249, 250, 251] }
     });
 
-    // Descarga directa
+    // Descarga del archivo
     doc.save(`Reporte_Historico_${periodo}.pdf`);
   } catch (err) {
     console.error("Error detallado al exportar a PDF:", err);

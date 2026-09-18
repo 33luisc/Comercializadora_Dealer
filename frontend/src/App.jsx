@@ -15,17 +15,46 @@ import AdminConfigPanel from './components/AdminConfigPanel';
 
 function App() {
   const {
-    afiliados, rentabilidad, periodoCierre, setPeriodoCierre,
-    errorMsg, setErrorMsg, successMsg, setSuccessMsg,
-    modalOpen, setModalOpen, selectedAfiliado, setSelectedAfiliado, transData, setTransData,
-    verHistorico, setVerHistorico, datosHistoricos,
-    verBitacora, setVerBitacora, afiliadoSeleccionadoBitacora, setAfiliadoSeleccionadoBitacora, listaTransacciones,
-    cargarDatos, cargarPeriodoHistorico, handleRegisterAfiliado, handleAddTransaccion, handleCierreMes, handleDelete, cargarBitacoraAfiliado,
-    handleUpdateAfiliado // Extraemos la función del hook
+    afiliados,
+    rentabilidad,
+    resumenAMostrar, // Extraemos el resumen dinámico/calculado
+    periodoCierre,
+    setPeriodoCierre,
+    errorMsg,
+    setErrorMsg,
+    successMsg,
+    setSuccessMsg,
+    modalOpen,
+    setModalOpen,
+    selectedAfiliado,
+    setSelectedAfiliado,
+    transData,
+    setTransData,
+    verHistorico,
+    setVerHistorico,
+    datosHistoricos,
+    verBitacora,
+    setVerBitacora,
+    afiliadoSeleccionadoBitacora,
+    setAfiliadoSeleccionadoBitacora,
+    listaTransacciones,
+    cargarDatos,
+    cargarPeriodoHistorico,
+    handleRegisterAfiliado,
+    handleAddTransaccion,
+    handleCierreMes,
+    handleDelete,
+    cargarBitacoraAfiliado,
+    handleUpdateAfiliado
   } = useDashboardData();
 
   const [formData, setFormData] = useState({
-    nombre: '', apellido: '', cedula: '', celular: '', correo: '', id_patrocinador: ''
+    nombre: '',
+    apellido: '',
+    cedula: '',
+    celular: '',
+    correo: '',
+    id_patrocinador: ''
   });
 
   // Estados de vista y autenticación
@@ -115,7 +144,7 @@ function App() {
         {/* NAVEGACIÓN Y CONTROLES DEL DASHBOARD */}
         {vistaActiva !== 'config' && (
           <DashboardControls 
-            rentabilidad={rentabilidad} 
+            rentabilidad={resumenAMostrar || rentabilidad} 
             vistaActiva={vistaActiva} 
             setVistaActiva={setVistaActiva}
             verHistorico={verHistorico} 
@@ -189,7 +218,7 @@ function App() {
                   onDelete={handleDelete}
                   onOpenTransaccion={(a) => { setSelectedAfiliado(a); setModalOpen(true); }}
                   onOpenDetalleComision={(a) => setUsuarioComisionSeleccionado(a)}
-                  onSaveEdit={handleUpdateAfiliado} // 2. Conectamos la prop con el handler
+                  onSaveEdit={handleUpdateAfiliado}
                 />
               ) : (
                 <NetworkTree 
@@ -198,7 +227,7 @@ function App() {
                   onOpenBitacora={cargarBitacoraAfiliado}
                   onOpenTransaccion={(a) => { setSelectedAfiliado(a); setModalOpen(true); }}
                   onOpenDetalleComision={(a) => setUsuarioComisionSeleccionado(a)}
-                  />
+                />
               )}
             </div>
 
