@@ -38,24 +38,33 @@ export function useDashboardData() {
     }
   }, [successMsg]);
 
-  // Carga inicial de datos y definición de periodo predeterminado
+  // Carga inicial de datos
   useEffect(() => {
     cargarDatos();
-    const fecha = new Date();
-    const mes = String(fecha.getMonth() + 1).padStart(2, '0');
-    setPeriodoCierre(`${fecha.getFullYear()}-${mes}`);
   }, []);
 
-  // Carga de datos en tiempo real (mes activo)
+  // Carga de datos en tiempo real (mes activo) y reseteo del selector al mes actual
   const cargarDatos = async () => {
     try {
       const data = await apiService.obtenerDatosIniciales();
       setAfiliados(Array.isArray(data.afiliados) ? data.afiliados : []);
       setRentabilidad(data.rentabilidad || {});
+      setVerHistorico(false);
+
+      // Resetea el selector de fecha al mes y año actual (YYYY-MM)
+      const fecha = new Date();
+      const año = fecha.getFullYear();
+      const mes = String(fecha.getMonth() + 1).padStart(2, '0');
+      setPeriodoCierre(`${año}-${mes}`);
     } catch (error) {
       console.error("Error conectando con la API:", error);
       setErrorMsg("Error al conectar con el servidor.");
     }
+  };
+
+  // Función explícita para regresar al mes activo y resetear el calendario
+  const handleVerMesActivo = () => {
+    cargarDatos();
   };
 
   // Carga y normalización de periodo histórico guardado
@@ -72,7 +81,6 @@ export function useDashboardData() {
 
       if (listaExtraida.length === 0) {
         alert(`No se encontraron registros guardados para el periodo ${periodo}`);
-        setVerHistorico(false);
         cargarDatos();
       } else {
         setDatosHistoricos(listaExtraida);
@@ -80,7 +88,7 @@ export function useDashboardData() {
       }
     } catch (error) {
       setErrorMsg(error.message);
-      setVerHistorico(false);
+      cargarDatos();
     }
   };
 
@@ -208,6 +216,7 @@ export function useDashboardData() {
     listaTransacciones,
     cargarDatos,
     cargarPeriodoHistorico,
+    handleVerMesActivo,
     handleRegisterAfiliado,
     handleUpdateAfiliado,
     handleAddTransaccion,

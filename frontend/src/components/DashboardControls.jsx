@@ -20,6 +20,39 @@ function DashboardControls({
   // Estado local para controlar la apertura/cierre del modal de bonificaciones
   const [modalBonificacionData, setModalBonificacionData] = useState(null);
 
+  // ---------------------------------------------------------------------
+  // CÁLCULO DINÁMICO DEL RESUMEN (Histórico vs. Mes Activo)
+  // ---------------------------------------------------------------------
+  let resumenAMostrar = rentabilidad;
+
+  if (verHistorico && datosHistoricos.length > 0) {
+    const utilidadGlobal = datosHistoricos.reduce(
+      (sum, item) => sum + (Number(item.utilidad_acumulada || item.utilidad_propia) || 0), 0
+    );
+    const comisionesPagadas = datosHistoricos.reduce(
+      (sum, item) => sum + (Number(item.comision_total) || 0), 0
+    );
+    const bonificacionesPagadas = datosHistoricos.reduce(
+      (sum, item) => sum + (Number(item.bono_liderazgo || item.bonificaciones) || 0), 0
+    );
+    const margenLibre = utilidadGlobal - comisionesPagadas - bonificacionesPagadas;
+    const porcentajeRepartido = utilidadGlobal > 0 
+      ? ((comisionesPagadas / utilidadGlobal) * 100).toFixed(2) 
+      : 0;
+    const montoSinNivel1 = datosHistoricos
+      .filter(item => Number(item.nivel) === 0)
+      .reduce((sum, item) => sum + (Number(item.comision_total || item.utilidad_acumulada) || 0), 0);
+
+    resumenAMostrar = {
+      utilidadGlobal,
+      comisionesPagadas,
+      bonificacionesPagadas,
+      margenLibre,
+      porcentajeRepartido,
+      montoSinNivel1
+    };
+  }
+
   // Obtener el mes actual en formato YYYY-MM para restricciones de entrada
   const hoy = new Date();
   const mesActualStr = hoy.toISOString().slice(0, 7);
@@ -63,7 +96,7 @@ function DashboardControls({
             <div>
               <p style={{ margin: 0, fontSize: '10px', color: '#9ca3af', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Utilidad Bruta</p>
               <p style={{ margin: '2px 0 0 0', fontSize: '18px', fontWeight: 'bold', color: '#030712' }}>
-                ${Number(rentabilidad?.utilidadGlobal || 0).toLocaleString('es-CO', { maximumFractionDigits: 0 })}
+                ${Number(resumenAMostrar?.utilidadGlobal || 0).toLocaleString('es-CO', { maximumFractionDigits: 0 })}
               </p>
             </div>
             <div style={{ padding: '8px', backgroundColor: '#eff6ff', color: '#2563eb', borderRadius: '10px', display: 'flex' }}>
@@ -78,7 +111,7 @@ function DashboardControls({
                 Comisiones
               </p>
               <p style={{ margin: '2px 0 0 0', fontSize: '18px', fontWeight: 'bold', color: '#dc2626' }}>
-                ${Number(rentabilidad?.comisionesPagadas || 0).toLocaleString('es-CO', { maximumFractionDigits: 0 })}
+                ${Number(resumenAMostrar?.comisionesPagadas || 0).toLocaleString('es-CO', { maximumFractionDigits: 0 })}
               </p>
             </div>
             <div style={{ padding: '8px', backgroundColor: '#fef2f2', color: '#dc2626', borderRadius: '10px', display: 'flex' }}>
@@ -113,7 +146,7 @@ function DashboardControls({
                 Bonificaciones
               </p>
               <p style={{ margin: '2px 0 0 0', fontSize: '18px', fontWeight: 'bold', color: '#2563eb' }}>
-                ${Number(rentabilidad?.bonificacionesPagadas || 0).toLocaleString('es-CO', { maximumFractionDigits: 0 })}
+                ${Number(resumenAMostrar?.bonificacionesPagadas || 0).toLocaleString('es-CO', { maximumFractionDigits: 0 })}
               </p>
             </div>
             <div style={{ padding: '8px', backgroundColor: '#eff6ff', color: '#2563eb', borderRadius: '10px', display: 'flex' }}>
@@ -128,7 +161,7 @@ function DashboardControls({
             <div>
               <p style={{ margin: 0, fontSize: '10px', color: '#9ca3af', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Margen Neto</p>
               <p style={{ margin: '2px 0 0 0', fontSize: '18px', fontWeight: 'bold', color: '#16a34a' }}>
-                ${Number(rentabilidad?.margenLibre || 0).toLocaleString('es-CO', { maximumFractionDigits: 0 })}
+                ${Number(resumenAMostrar?.margenLibre || 0).toLocaleString('es-CO', { maximumFractionDigits: 0 })}
               </p>
             </div>
             <div style={{ padding: '8px', backgroundColor: '#f0fdf4', color: '#16a34a', borderRadius: '10px', display: 'flex' }}>
@@ -140,7 +173,7 @@ function DashboardControls({
           <div style={{ backgroundColor: '#ffffff', padding: '12px 16px', borderRadius: '12px', border: '1px solid #f3f4f6', boxShadow: '0 1px 2px rgba(0,0,0,0.02)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div>
               <p style={{ margin: 0, fontSize: '10px', color: '#9ca3af', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Payout Red</p>
-              <p style={{ margin: '2px 0 0 0', fontSize: '18px', fontWeight: 'bold', color: '#9333ea' }}>{rentabilidad?.porcentajeRepartido || 0}%</p>
+              <p style={{ margin: '2px 0 0 0', fontSize: '18px', fontWeight: 'bold', color: '#9333ea' }}>{resumenAMostrar?.porcentajeRepartido || 0}%</p>
             </div>
             <div style={{ padding: '8px', backgroundColor: '#faf5ff', color: '#9333ea', borderRadius: '10px', display: 'flex' }}>
               <svg style={{ width: '16px', height: '16px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z"/></svg>
@@ -152,7 +185,7 @@ function DashboardControls({
             <div>
               <p style={{ margin: 0, fontSize: '10px', color: '#9ca3af', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Monto Nivel 0</p>
               <p style={{ margin: '2px 0 0 0', fontSize: '18px', fontWeight: 'bold', color: '#d97706' }}>
-                ${Number(rentabilidad?.montoSinNivel1 || 0).toLocaleString('es-CO', { maximumFractionDigits: 0 })}
+                ${Number(resumenAMostrar?.montoSinNivel1 || 0).toLocaleString('es-CO', { maximumFractionDigits: 0 })}
               </p>
             </div>
             <div style={{ padding: '8px', backgroundColor: '#fffbeb', color: '#d97706', borderRadius: '10px', display: 'flex' }}>
