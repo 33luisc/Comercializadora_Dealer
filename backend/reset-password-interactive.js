@@ -1,8 +1,11 @@
 const readline = require('readline');
-const db = require('./config/database');
-const { hashPassword } = require('./utils/cryptoUtils');
+const path = require('path');
 
-// Función auxiliar para preguntar algo estándar
+// Importaciones locales al estar dentro de la carpeta backend
+const db = require(path.join(__dirname, 'config', 'database'));
+const { hashPassword } = require(path.join(__dirname, 'utils', 'cryptoUtils'));
+
+// Función auxiliar para preguntas de texto plano
 function askQuestion(query) {
     const rl = readline.createInterface({
         input: process.stdin,
@@ -17,7 +20,7 @@ function askQuestion(query) {
     });
 }
 
-// Función limpia para pedir contraseñas ocultando la entrada (modo raw)
+// Función para pedir contraseña ocultando la entrada
 function askPassword(query) {
     return new Promise((resolve) => {
         process.stdout.write(query);
@@ -33,7 +36,6 @@ function askPassword(query) {
         stdin.setEncoding('utf8');
 
         const onData = (char) => {
-            // Manejar Enter (\r o \n)
             if (char === '\r' || char === '\n') {
                 stdin.removeListener('data', onData);
                 if (stdin.setRawMode) {
@@ -45,22 +47,18 @@ function askPassword(query) {
                 return;
             }
 
-            // Manejar Ctrl+C (interrumpir proceso)
             if (char === '\u0003') {
                 process.exit(0);
             }
 
-            // Manejar Backspace (borrar carácter)
             if (char === '\u0008' || char === '\x7f') {
                 if (password.length > 0) {
                     password = password.slice(0, -1);
-                    // Mover el cursor atrás, escribir un espacio y volver atrás
                     process.stdout.write('\b \b');
                 }
                 return;
             }
 
-            // Agregar carácter y mostrar asterisco
             password += char;
             process.stdout.write('*');
         };
@@ -70,8 +68,7 @@ function askPassword(query) {
 }
 
 async function main() {
-    // Esperar un instante breve a que database.js termine de conectarse e imprimir su log inicial
-    await new Promise((res) => setTimeout(res, 100));
+    await new Promise((res) => setTimeout(res, 200));
 
     console.log('\n==========================================');
     console.log('   RESET DE CONTRASEÑA DE ADMINISTRADOR   ');
