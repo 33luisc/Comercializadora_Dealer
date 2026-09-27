@@ -23,7 +23,7 @@ export default function ModalDetalleComision({ usuario, onClose }) {
         backgroundColor: '#ffffff',
         borderRadius: '12px',
         width: '100%',
-        maxWidth: '650px',
+        maxWidth: '700px',
         maxHeight: '85vh',
         overflow: 'hidden',
         display: 'flex',
@@ -72,7 +72,8 @@ export default function ModalDetalleComision({ usuario, onClose }) {
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>
               <thead>
                 <tr style={{ backgroundColor: '#f1f5f9', color: '#475569', textAlign: 'left' }}>
-                  <th style={{ padding: '10px', borderRadius: '6px 0 0 6px' }}>Origen (Persona)</th>
+                  <th style={{ padding: '10px', borderRadius: '6px 0 0 6px' }}>ID</th>
+                  <th style={{ padding: '10px' }}>Origen (Persona)</th>
                   <th style={{ padding: '10px' }}>Concepto</th>
                   <th style={{ padding: '10px', textAlign: 'center' }}>%</th>
                   <th style={{ padding: '10px', textAlign: 'right', borderRadius: '0 6px 6px 0' }}>Aporte</th>
@@ -81,13 +82,16 @@ export default function ModalDetalleComision({ usuario, onClose }) {
               <tbody>
                 {desglose.map((item, index) => (
                   <tr key={index} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                    <td style={{ padding: '10px', color: '#64748b', fontWeight: '500' }}>
+                      {item.origen_id}
+                    </td>
                     <td style={{ padding: '10px', fontWeight: '600', color: '#0f172a' }}>
                       {item.nombre_origen}
                     </td>
                     <td style={{ padding: '10px', color: '#475569' }}>
                       <span style={{
-                        backgroundColor: item.tipo.includes('Propia') ? '#dcfce7' : '#dbeafe',
-                        color: item.tipo.includes('Propia') ? '#166534' : '#1e40af',
+                        backgroundColor: item.tipo?.includes('Propia') ? '#dcfce7' : '#dbeafe',
+                        color: item.tipo?.includes('Propia') ? '#166534' : '#1e40af',
                         padding: '2px 8px',
                         borderRadius: '12px',
                         fontSize: '12px',
