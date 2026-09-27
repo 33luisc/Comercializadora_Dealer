@@ -1,5 +1,5 @@
 // src/components/MemberRow.jsx
-//Tablas de MembersTable
+// Tablas de MembersTable
 import React from 'react';
 
 function MemberRow({ 
@@ -13,6 +13,7 @@ function MemberRow({
   onOpenBitacora,
   onOpenTransaccion,
   onOpenDetalleComision,
+  onOpenDetalleNivel, 
   onDelete
 }) {
   const a = afiliado;
@@ -203,20 +204,43 @@ function MemberRow({
         </td>
       )}
 
-      {/* Nivel */}
+      {/* Nivel (Modificado a botón para ver desglose de nivel) */}
       {!estaOculta('nivel') && (
         <td style={{ padding: '12px', textAlign: 'center', whiteSpace: 'nowrap' }}>
-          <span style={{ 
-            backgroundColor: tieneBonoLiderazgo ? '#d1fae5' : '#f1f5f9', 
-            color: tieneBonoLiderazgo ? '#047857' : '#334155', 
-            border: tieneBonoLiderazgo ? '1px solid #a7f3d0' : 'none',
-            padding: '4px 8px', 
-            borderRadius: '6px', 
-            fontSize: '11px', 
-            fontWeight: '700' 
-          }}>
+          <button
+            type="button"
+            onClick={() => !verHistorico && onOpenDetalleNivel?.(a)}
+            disabled={verHistorico}
+            title={verHistorico ? '' : 'Ver desglose de calificación de nivel'}
+            style={{ 
+              backgroundColor: tieneBonoLiderazgo ? '#d1fae5' : '#f1f5f9', 
+              color: tieneBonoLiderazgo ? '#047857' : '#334155', 
+              border: tieneBonoLiderazgo ? '1px solid #a7f3d0' : '1px solid #e2e8f0',
+              padding: '4px 10px', 
+              borderRadius: '20px', 
+              fontSize: '11px', 
+              fontWeight: '700',
+              cursor: verHistorico ? 'default' : 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '4px',
+              transition: 'all 0.15s ease'
+            }}
+            onMouseEnter={(e) => {
+              if (!verHistorico) {
+                e.currentTarget.style.backgroundColor = '#e2e8f0';
+                e.currentTarget.style.borderColor = '#cbd5e1';
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (!verHistorico) {
+                e.currentTarget.style.backgroundColor = tieneBonoLiderazgo ? '#d1fae5' : '#f1f5f9';
+                e.currentTarget.style.borderColor = tieneBonoLiderazgo ? '#a7f3d0' : '#e2e8f0';
+              }
+            }}
+          >
             Nivel {a.nivel}
-          </span>
+          </button>
         </td>
       )}
 

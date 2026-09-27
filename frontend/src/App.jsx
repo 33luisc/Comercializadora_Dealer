@@ -6,6 +6,7 @@ import RegisterMemberForm from './components/RegisterMemberForm';
 import TransactionModal from './components/TransactionModal';
 import LogModal from './components/LogModal';
 import ModalDetalleComision from './components/ModalDetalleComision';
+import ModalDetalleNivel from './components/ModalDetalleNivel'; // 1. IMPORTAR EL NUEVO MODAL
 import MembersTable from './components/MembersTable';
 import NetworkTree from './components/NetworkTree/NetworkTree';
 import DashboardControls from './components/DashboardControls';
@@ -64,6 +65,9 @@ function App() {
 
   // Estado para el modal de comisiones
   const [usuarioComisionSeleccionado, setUsuarioComisionSeleccionado] = useState(null);
+
+  // 2. NUEVO ESTADO PARA EL MODAL DE DESGLOSE DE NIVEL
+  const [usuarioNivelSeleccionado, setUsuarioNivelSeleccionado] = useState(null);
 
   // 1. Cargar sesión activa usando sessionStorage
   useEffect(() => {
@@ -218,6 +222,7 @@ function App() {
                   onDelete={handleDelete}
                   onOpenTransaccion={(a) => { setSelectedAfiliado(a); setModalOpen(true); }}
                   onOpenDetalleComision={(a) => setUsuarioComisionSeleccionado(a)}
+                  onOpenDetalleNivel={(a) => setUsuarioNivelSeleccionado(a)} // 3. PROP AGREGADA
                   onSaveEdit={handleUpdateAfiliado}
                 />
               ) : (
@@ -227,6 +232,7 @@ function App() {
                   onOpenBitacora={cargarBitacoraAfiliado}
                   onOpenTransaccion={(a) => { setSelectedAfiliado(a); setModalOpen(true); }}
                   onOpenDetalleComision={(a) => setUsuarioComisionSeleccionado(a)}
+                  onOpenDetalleNivel={(a) => setUsuarioNivelSeleccionado(a)} // 3. PROP AGREGADA (OPCIONAL SI EL ÁRBOL LO USA)
                 />
               )}
             </div>
@@ -255,6 +261,12 @@ function App() {
       <ModalDetalleComision 
         usuario={usuarioComisionSeleccionado}
         onClose={() => setUsuarioComisionSeleccionado(null)}
+      />
+
+      {/* 4. RENDERIZADO DEL NUEVO MODAL DE DETALLE DE NIVEL */}
+      <ModalDetalleNivel 
+        usuario={usuarioNivelSeleccionado}
+        onClose={() => setUsuarioNivelSeleccionado(null)}
       />
     </div>
   );

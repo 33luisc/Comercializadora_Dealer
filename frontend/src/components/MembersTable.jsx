@@ -11,7 +11,8 @@ function MembersTable({
   adminUser,
   onOpenBitacora, 
   onOpenTransaccion, 
-  onOpenDetalleComision, 
+  onOpenDetalleComision,
+  onOpenDetalleNivel,
   onDelete,
   onSaveEdit
 }) {
@@ -320,6 +321,7 @@ function MembersTable({
                   onOpenBitacora={onOpenBitacora}
                   onOpenTransaccion={onOpenTransaccion}
                   onOpenDetalleComision={onOpenDetalleComision}
+                  onOpenDetalleNivel={onOpenDetalleNivel}
                   onDelete={onDelete}
                 />
               ))
@@ -345,7 +347,7 @@ function MembersTable({
       {afiliadoAEditar && (
         <ModificarAfiliado 
           afiliado={afiliadoAEditar} 
-          afiliados={afiliados} // 👈 Solución: pasamos la lista de afiliados para cargar el selector de patrocinadores
+          afiliados={afiliados}
           onSave={(datos) => {
             if (onSaveEdit) onSaveEdit(datos);
             setAfiliadoAEditar(null);
