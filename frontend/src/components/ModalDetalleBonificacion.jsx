@@ -26,6 +26,7 @@ export default function ModalDetalleBonificacion({ listaUsuarios = [], rentabili
 
     if (bonosFiltrados.length > 0) {
       items = bonosFiltrados.map((item) => ({
+        id: item.origen_id || item.origenId || item.id_origen || item.id || '-',
         origen: item.nombre_origen || item.origen || nombreUsuario,
         concepto: item.tipo || item.concepto || 'Bono Liderazgo',
         monto: Number(item.monto || item.aporte || 0)
@@ -36,6 +37,7 @@ export default function ModalDetalleBonificacion({ listaUsuarios = [], rentabili
       const montoDirecto = Number(u.bono_liderazgo || u.bonificacion || 0);
       if (montoDirecto > 0) {
         items = [{
+          id: u.origen_id || u.origenId || u.id_origen || u.id || '-',
           origen: u.nombre_origen || nombreUsuario,
           concepto: 'Bono Liderazgo (Red)',
           monto: montoDirecto
@@ -92,9 +94,10 @@ export default function ModalDetalleBonificacion({ listaUsuarios = [], rentabili
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
               <thead>
                 <tr style={{ backgroundColor: '#f1f5f9', color: '#475569', textAlign: 'left' }}>
+                  <th style={{ padding: '10px', borderRadius: '6px 0 0 6px' }}>ID</th>
                   <th style={{ padding: '10px' }}>Origen (Persona)</th>
                   <th style={{ padding: '10px' }}>Concepto</th>
-                  <th style={{ padding: '10px', textAlign: 'right' }}>Aporte</th>
+                  <th style={{ padding: '10px', textAlign: 'right', borderRadius: '0 6px 6px 0' }}>Aporte</th>
                 </tr>
               </thead>
               <tbody>
@@ -103,7 +106,8 @@ export default function ModalDetalleBonificacion({ listaUsuarios = [], rentabili
                     {/* Filas de ítems individuales del usuario */}
                     {u.items.map((item, itemIdx) => (
                       <tr key={itemIdx} style={{ borderBottom: '1px solid #f8fafc' }}>
-                        <td style={{ padding: '8px 10px', color: '#334155' }}>{item.origen}</td>
+                        <td style={{ padding: '8px 10px', color: '#64748b', fontWeight: '500' }}>{item.id}</td>
+                        <td style={{ padding: '8px 10px', color: '#334155', fontWeight: '600' }}>{item.origen}</td>
                         <td style={{ padding: '8px 10px' }}>
                           <span style={{
                             backgroundColor: '#dbeafe', color: '#1e40af', padding: '2px 8px',
@@ -120,7 +124,7 @@ export default function ModalDetalleBonificacion({ listaUsuarios = [], rentabili
 
                     {/* Fila del Subtotal del usuario */}
                     <tr style={{ backgroundColor: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
-                      <td colSpan={2} style={{ padding: '8px 10px', fontWeight: '700', color: '#1e293b' }}>
+                      <td colSpan={3} style={{ padding: '8px 10px', fontWeight: '700', color: '#1e293b' }}>
                         Subtotal para {u.nombreUsuario}:
                       </td>
                       <td style={{ padding: '8px 10px', textAlign: 'right', fontWeight: '800', color: '#0f172a' }}>
