@@ -24,6 +24,7 @@ function procesarCalculosMLMDinamico(afiliados, config) {
         u.bono_liderazgo = 0;
         u.comision_total = 0;
         u.desglose_comisiones = [];
+        u.compradores_descendientes = []; // Array único para el desglose de calificación
     });
 
     const nivelesOrdenadosDesc = [...niveles].sort((a, b) => b.umbral - a.umbral);
@@ -56,15 +57,23 @@ function procesarCalculosMLMDinamico(afiliados, config) {
         const utilidadPropiaNum = Number(usuario.utilidad_propia) || 0;
         const utilidadDescendentes = descendientes.reduce((suma, sub) => suma + (Number(sub.utilidad_propia) || 0), 0);
         
-        // CORRECCIÓN: La utilidad de calificación DEBE sumar la propia + la red descendente
+        // Utilidad de calificación = propia + red descendente
         usuario.utilidad_total_calificacion = Math.floor(utilidadPropiaNum + utilidadDescendentes);
 
-        usuario.compradores_en_red = descendientes.filter(sub => (Number(sub.utilidad_propia) || 0) > 0).length;
+        // Guardar la lista exacta de los descendientes con sus compras que suman los $9.890.000
+        usuario.compradores_descendientes = descendientes
+            .filter(sub => (Number(sub.utilidad_propia) || 0) > 0)
+            .map(sub => ({
+                id: sub.id,
+                nombre: `${sub.nombre} ${sub.apellido || ''}`,
+                aporte_compra: Number(sub.utilidad_propia) || 0
+            }));
+
+        usuario.compradores_en_red = usuario.compradores_descendientes.length;
 
         const directos = afiliados.filter(sub => String(sub.id_patrocinador) === String(usuario.id));
-        // Métricas separadas para el frontend
         usuario.compradores_directos = directos.filter(sub => (Number(sub.utilidad_propia) || 0) > 0).length;
-        usuario.compradores_en_red = descendientes.filter(sub => (Number(sub.utilidad_propia) || 0) > 0).length;
+        
         const limiteDirectos = general.limite_directos_bono || 15;
         usuario.cupos_libres = Math.max(0, limiteDirectos - directos.length);
 
@@ -102,10 +111,9 @@ function procesarCalculosMLMDinamico(afiliados, config) {
         let porcentajePropioComprador = configNivelComprador ? (Number(configNivelComprador.porcentaje_propio) || 0) : 0;
         
         if (porcentajePropioComprador === 0) {
-            porcentajePropioComprador = 1 / 6; // Base por defecto si no ha alcanzado nivel en tabla
+            porcentajePropioComprador = 1 / 6;
         }
 
-        // Redondeo hacia abajo del cálculo intermedio
         const montoComisionPropia = Math.floor(utilidadComprador * porcentajePropioComprador);
         comprador.comision_propia = montoComisionPropia;
         
@@ -115,6 +123,7 @@ function procesarCalculosMLMDinamico(afiliados, config) {
                 nombre_origen: `${comprador.nombre} ${comprador.apellido || ''}`,
                 tipo: 'Compra Propia',
                 porcentaje: (porcentajePropioComprador * 100).toFixed(1) + '%',
+                utilidad_origen: utilidadComprador, // Incluimos la compra base
                 monto: montoComisionPropia
             });
         }
@@ -131,10 +140,8 @@ function procesarCalculosMLMDinamico(afiliados, config) {
                 const configPatrocinador = mapaConfigNivel[patrocinador.nivel];
                 const porcentajePatrocinador = configPatrocinador ? (Number(configPatrocinador.porcentaje_propio) || 0) : 0;
 
-                // Solo cobra si tiene un porcentaje mayor al que ya se ha repartido en la línea ascendente
                 if (porcentajePatrocinador > porcentajeCobradoAcumulado) {
                     const factorDiferencial = porcentajePatrocinador - porcentajeCobradoAcumulado;
-                    // Redondeo hacia abajo del diferencial
                     const montoDiferencial = Math.floor(utilidadComprador * factorDiferencial);
 
                     patrocinador.comision_por_red += montoDiferencial;
@@ -144,10 +151,10 @@ function procesarCalculosMLMDinamico(afiliados, config) {
                         nombre_origen: `${comprador.nombre} ${comprador.apellido || ''}`,
                         tipo: 'Diferencial de Red',
                         porcentaje: (factorDiferencial * 100).toFixed(1) + '%',
+                        utilidad_origen: utilidadComprador, // Incluimos la compra base
                         monto: montoDiferencial
                     });
                     
-                    // Actualizamos el tope cobrado acumulado para evitar sobrepagos a niveles superiores de igual o menor rango
                     porcentajeCobradoAcumulado = porcentajePatrocinador;
                 }
             }
@@ -156,7 +163,7 @@ function procesarCalculosMLMDinamico(afiliados, config) {
         }
     });
 
-    // 3. CALCULAR BONO DE LIDERAZGO (CON FILTRO DE ESCUDO POR LÍDER INTERMEDIO)
+    // 3. CALCULAR BONO DE LIDERAZGO
     const factorLiderazgo = Number(general.factor_liderazgo) || 0;
 
     afiliados.forEach(usuario => {
@@ -170,14 +177,13 @@ function procesarCalculosMLMDinamico(afiliados, config) {
             const cantidadNivelesMaxDirectos = nivelesMaxDirectos.length;
 
             if (cantidadNivelesMaxDirectos >= 1) {
-                // Filtrar solo los descendientes que NO tienen a otro líder de Nivel Máximo intermedio entre ellos y el usuario
                 const descendientesElegibles = afiliados.filter(sub => {
                     if (sub.id === usuario.id || sub.nivel === 0 || sub.nivel >= nivelMaximoExistente) return false;
                     if (!esDescendienteRuta(usuario.ruta_de_red, sub.ruta_de_red)) return false;
 
                     let curr = mapaUsuarios[sub.id_patrocinador];
                     while (curr && curr.id !== usuario.id) {
-                        if (curr.nivel === nivelMaximoExistente) return false; // Bloqueado por escudo intermedio
+                        if (curr.nivel === nivelMaximoExistente) return false;
                         curr = mapaUsuarios[curr.id_patrocinador];
                     }
                     return true;
@@ -186,7 +192,6 @@ function procesarCalculosMLMDinamico(afiliados, config) {
                 descendientesElegibles.forEach(desc => {
                     const utilidad = Number(desc.utilidad_propia) || 0;
                     if (utilidad > 0) {
-                        // Redondeo hacia abajo del bono de liderazgo
                         const montoBono = Math.floor(utilidad * factorLiderazgo);
                         usuario.bono_liderazgo += montoBono;
                         
@@ -195,6 +200,7 @@ function procesarCalculosMLMDinamico(afiliados, config) {
                             nombre_origen: `${desc.nombre} ${desc.apellido || ''}`,
                             tipo: 'Bono Liderazgo (Red Nivel < Max)',
                             porcentaje: (factorLiderazgo * 100).toFixed(1) + '%',
+                            utilidad_origen: utilidad, // Incluimos la compra base
                             monto: montoBono
                         });
                     }
@@ -206,7 +212,6 @@ function procesarCalculosMLMDinamico(afiliados, config) {
                     if (directoNivelMax) {
                         const utilidad = Number(directoNivelMax.utilidad_propia) || 0;
                         if (utilidad > 0) {
-                            // Redondeo hacia abajo del bono directo de nivel máx
                             const montoBono = Math.floor(utilidad * factorLiderazgo);
                             usuario.bono_liderazgo += montoBono;
 
@@ -215,6 +220,7 @@ function procesarCalculosMLMDinamico(afiliados, config) {
                                 nombre_origen: `${directoNivelMax.nombre} ${directoNivelMax.apellido || ''}`,
                                 tipo: `Bono Liderazgo (Directo Nivel Máx pos #${i})`,
                                 porcentaje: (factorLiderazgo * 100).toFixed(1) + '%',
+                                utilidad_origen: utilidad, // Incluimos la compra base
                                 monto: montoBono
                             });
                         }
@@ -224,7 +230,7 @@ function procesarCalculosMLMDinamico(afiliados, config) {
         }
     });
 
-    // CONSOLIDACIÓN FINAL (Se redondean enteros de forma preventiva)
+    // CONSOLIDACIÓN FINAL
     afiliados.forEach(usuario => {
         usuario.comision_propia = Math.floor(usuario.comision_propia);
         usuario.comision_por_red = Math.floor(usuario.comision_por_red);

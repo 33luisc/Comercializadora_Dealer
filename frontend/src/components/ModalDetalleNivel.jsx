@@ -1,6 +1,6 @@
 import React from 'react';
 
-// Escala por defecto (1 a 4) en caso de que no se envíe `nivelesConfig`
+// Configuración por defecto si no se pasa nivelesConfig
 const NIVELES_DEFAULT = [
   { nivel: 1, umbral: 50000, porcentaje_propio: 0.167 },
   { nivel: 2, umbral: 400000, porcentaje_propio: 0.333 },
@@ -16,24 +16,49 @@ export default function ModalDetalleNivel({ usuario, nivelesConfig = [], onClose
   const utilidadRed = Math.max(0, utilidadCalificacion - utilidadPropia);
   const estaActivo = usuario.estado === 'Activo';
 
-  // Usamos la lista provista o la escala por defecto de 4 niveles
-  const listaNiveles = nivelesConfig.length > 0 ? nivelesConfig : NIVELES_DEFAULT;
+  // 1. Si viene el arreglo directo de compradores_descendientes lo usamos
+  // 2. Si no, construimos la lista única agrupando las ventas por usuario desde desglose_comisiones
+  let listaAportesRed = [];
 
-  // Ordenamos niveles de menor a mayor umbral
+  if (usuario.compradores_descendientes && usuario.compradores_descendientes.length > 0) {
+    listaAportesRed = usuario.compradores_descendientes.map(item => ({
+      id: item.id,
+      nombre: item.nombre,
+      concepto: 'Compra en Red',
+      monto: Number(item.aporte_compra || 0)
+    }));
+  } else {
+    // Agrupar por ID único de origen para evitar duplicados por tipo de bono/comisión
+    const mapaUnico = {};
+    (usuario.desglose_comisiones || []).forEach(item => {
+      const esPropia = item.tipo?.toLowerCase().includes('propia') || String(item.origen_id) === String(usuario.id);
+      if (!esPropia && item.origen_id) {
+        if (!mapaUnico[item.origen_id]) {
+          mapaUnico[item.origen_id] = {
+            id: item.origen_id,
+            nombre: item.nombre_origen,
+            concepto: item.tipo,
+            monto: Number(item.utilidad_origen || item.monto || 0)
+          };
+        }
+      }
+    });
+    listaAportesRed = Object.values(mapaUnico);
+  }
+
+  // Suma total de los ítems en la tabla
+  const sumaTotalLista = listaAportesRed.reduce((acc, curr) => acc + curr.monto, 0);
+
+  // Configuración de niveles
+  const listaNiveles = nivelesConfig.length > 0 ? nivelesConfig : NIVELES_DEFAULT;
   const nivelesOrdenados = [...listaNiveles].sort((a, b) => Number(a.nivel) - Number(b.nivel));
   
-  // Nivel actual como número
   const nivelActual = Number(usuario.nivel || 0);
-  
-  // Obtener el nivel máximo de la estructura (ej. Nivel 4)
   const nivelMaximoEstructura = nivelesOrdenados.length > 0 
     ? Math.max(...nivelesOrdenados.map(n => Number(n.nivel))) 
     : 4;
 
-  // Siguiente nivel por alcanzar
   const siguienteNivelConfig = nivelesOrdenados.find(n => Number(n.nivel) > nivelActual);
-
-  // Verificación estricta de nivel máximo alcanzado
   const esNivelMaximo = nivelActual >= nivelMaximoEstructura;
 
   return (
@@ -43,8 +68,8 @@ export default function ModalDetalleNivel({ usuario, nivelesConfig = [], onClose
       display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px'
     }}>
       <div style={{
-        backgroundColor: '#ffffff', borderRadius: '12px', width: '100%', maxWidth: '650px',
-        maxHeight: '85vh', overflow: 'hidden', display: 'flex', flexDirection: 'column',
+        backgroundColor: '#ffffff', borderRadius: '12px', width: '100%', maxWidth: '720px',
+        maxHeight: '90vh', overflow: 'hidden', display: 'flex', flexDirection: 'column',
         boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)'
       }}>
         {/* Encabezado */}
@@ -60,7 +85,12 @@ export default function ModalDetalleNivel({ usuario, nivelesConfig = [], onClose
               Afiliado: <strong>{usuario.nombre} {usuario.apellido || ''}</strong> (ID: {usuario.id})
             </p>
           </div>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#64748b', fontWeight: 'bold' }}>✕</button>
+          <button 
+            onClick={onClose} 
+            style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#64748b', fontWeight: 'bold' }}
+          >
+            ✕
+          </button>
         </div>
 
         {/* Cuerpo del Modal */}
@@ -74,26 +104,35 @@ export default function ModalDetalleNivel({ usuario, nivelesConfig = [], onClose
             padding: '16px',
             marginBottom: '20px',
             display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center'
+            justify: 'space-between',
+            alignItems: 'center',
+            gap: '16px'
           }}>
             <div>
-              <span style={{ fontSize: '12px', fontWeight: '600', color: estaActivo ? '#166534' : '#991b1b', textTransform: 'uppercase' }}>
+              <span style={{ 
+                fontSize: '12px', 
+                fontWeight: '600', 
+                color: estaActivo ? '#166534' : '#991b1b', 
+                textTransform: 'uppercase',
+                whiteSpace: 'nowrap'
+              }}>
                 Estado Actual: {usuario.estado}
               </span>
-              <h2 style={{ margin: '4px 0 0 0', color: '#0f172a', fontSize: '22px', fontWeight: '800' }}>
+              <h2 style={{ margin: '4px 0 0 0', color: '#0f172a', fontSize: '22px', fontWeight: '800', whiteSpace: 'nowrap' }}>
                 {nivelActual > 0 ? `Nivel ${nivelActual}` : 'Sin Nivel (Nivel 0)'}
               </h2>
             </div>
-            <div style={{ textAlign: 'right' }}>
-              <span style={{ fontSize: '12px', color: '#64748b' }}>Puntos/Utilidad Total:</span>
-              <div style={{ fontSize: '20px', fontWeight: '800', color: '#2563eb' }}>
+            <div style={{ textAlign: 'right', marginLeft: 'auto' }}>
+              <span style={{ fontSize: '12px', color: '#64748b', whiteSpace: 'nowrap' }}>
+                Puntos/Utilidad Total:
+              </span>
+              <div style={{ fontSize: '20px', fontWeight: '800', color: '#2563eb', whiteSpace: 'nowrap' }}>
                 ${utilidadCalificacion.toLocaleString('es-CO')}
               </div>
             </div>
           </div>
 
-          {/* Desglose de "Por qué llegó a este nivel" */}
+          {/* Resumen Principal de Calificación */}
           <h4 style={{ margin: '0 0 10px 0', color: '#334155', fontSize: '14px', fontWeight: '700' }}>
             ¿Por qué calificó en este nivel?
           </h4>
@@ -117,7 +156,7 @@ export default function ModalDetalleNivel({ usuario, nivelesConfig = [], onClose
               <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
                 <td style={{ padding: '10px', fontWeight: '600', color: '#0f172a' }}>Red Descendente</td>
                 <td style={{ padding: '10px', textAlign: 'center', color: '#64748b' }}>
-                  {usuario.compradores_en_red || 0} comprador(es) en red
+                  {usuario.compradores_en_red || listaAportesRed.length || 0} comprador(es) en red
                 </td>
                 <td style={{ padding: '10px', textAlign: 'right', fontWeight: '600', color: '#16a34a' }}>
                   +${utilidadRed.toLocaleString('es-CO')}
@@ -132,7 +171,67 @@ export default function ModalDetalleNivel({ usuario, nivelesConfig = [], onClose
             </tbody>
           </table>
 
-          {/* Requisitos y Escala de Niveles */}
+          {/* Detalle de Aportes de la Red Descendente */}
+          {listaAportesRed.length > 0 && (
+            <div style={{
+              marginBottom: '20px',
+              backgroundColor: '#f8fafc',
+              borderRadius: '8px',
+              padding: '12px',
+              border: '1px solid #e2e8f0'
+            }}>
+              <h5 style={{ margin: '0 0 8px 0', fontSize: '12px', color: '#475569', fontWeight: '700', textTransform: 'uppercase' }}>
+                DETALLE DE APORTES DE LA RED DESCENDENTE ({listaAportesRed.length} COMPRADORES)
+              </h5>
+              
+              {/* Contenedor con Scroll para recorrer toda la red */}
+              <div style={{ maxHeight: '240px', overflowY: 'auto', paddingRight: '4px' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
+                  <thead style={{ position: 'sticky', top: 0, backgroundColor: '#f8fafc', zIndex: 1 }}>
+                    <tr style={{ borderBottom: '1px solid #cbd5e1', color: '#64748b', textAlign: 'left' }}>
+                      <th style={{ padding: '6px' }}>ID</th>
+                      <th style={{ padding: '6px' }}>Persona</th>
+                      <th style={{ padding: '6px' }}>Concepto</th>
+                      <th style={{ padding: '6px', textAlign: 'right' }}>Aporte de Compra</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {listaAportesRed.map((item, index) => (
+                      <tr key={index} style={{ borderBottom: '1px solid #e2e8f0' }}>
+                        <td style={{ padding: '6px', color: '#64748b' }}>{item.id}</td>
+                        <td style={{ padding: '6px', fontWeight: '600', color: '#0f172a' }}>{item.nombre}</td>
+                        <td style={{ padding: '6px', color: '#475569' }}>
+                          <span style={{
+                            backgroundColor: '#dbeafe',
+                            color: '#1e40af',
+                            padding: '1px 6px',
+                            borderRadius: '10px',
+                            fontSize: '11px',
+                            fontWeight: '500'
+                          }}>
+                            {item.concepto}
+                          </span>
+                        </td>
+                        <td style={{ padding: '6px', textAlign: 'right', fontWeight: '700', color: '#16a34a' }}>
+                          +${Number(Math.round(item.monto)).toLocaleString('es-CO')}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot>
+                    <tr style={{ backgroundColor: '#e2e8f0', fontWeight: '700' }}>
+                      <td colSpan={3} style={{ padding: '6px', color: '#0f172a' }}>Suma de Aportes de Red:</td>
+                      <td style={{ padding: '6px', textAlign: 'right', color: '#16a34a' }}>
+                        +${sumaTotalLista.toLocaleString('es-CO')}
+                      </td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* Tabla de Umbrales de Calificación */}
           {nivelesOrdenados.length > 0 && (
             <>
               <h4 style={{ margin: '0 0 10px 0', color: '#334155', fontSize: '14px', fontWeight: '700' }}>
@@ -184,7 +283,7 @@ export default function ModalDetalleNivel({ usuario, nivelesConfig = [], onClose
 
         </div>
 
-        {/* Pie con sugerencia para siguiente nivel */}
+        {/* Pie con Estado / Meta Siguiente Nivel */}
         <div style={{
           padding: '14px 20px', backgroundColor: '#f8fafc', borderTop: '1px solid #e2e8f0',
           fontSize: '13px', color: '#475569'
