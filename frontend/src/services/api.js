@@ -2,15 +2,32 @@
 const API_BASE = 'http://localhost:4000/api';
 
 export const apiService = {
+  // Carga paralela de afiliados, rentabilidad y configuración de niveles de la BD
   async obtenerDatosIniciales() {
-    const [resAfiliados, resRentabilidad] = await Promise.all([
+    const [resAfiliados, resRentabilidad, resConfig] = await Promise.all([
       fetch(`${API_BASE}/afiliados`),
-      fetch(`${API_BASE}/rentabilidad`)
+      fetch(`${API_BASE}/rentabilidad`),
+      fetch(`${API_BASE}/configuracion`)
     ]);
+
+    const dataConfig = await resConfig.json();
+
     return {
       afiliados: await resAfiliados.json(),
-      rentabilidad: await resRentabilidad.json()
+      rentabilidad: await resRentabilidad.json(),
+      // Extrae la lista de niveles desde la respuesta
+      niveles: dataConfig?.niveles || (Array.isArray(dataConfig) ? dataConfig : [])
     };
+  },
+
+  // Consulta explícita de la configuración MLM
+  async obtenerConfiguracion() {
+    const res = await fetch(`${API_BASE}/configuracion`);
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error || data.message || 'Error al obtener la configuración.');
+    }
+    return data;
   },
 
   async registrarAfiliado(formData) {

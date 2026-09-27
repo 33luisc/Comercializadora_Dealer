@@ -1,6 +1,6 @@
 import React from 'react';
 
-// Configuración por defecto si no se pasa nivelesConfig
+// Escala fallback únicamente si falla la conexión a la BD
 const NIVELES_DEFAULT = [
   { nivel: 1, umbral: 50000, porcentaje_propio: 0.167 },
   { nivel: 2, umbral: 400000, porcentaje_propio: 0.333 },
@@ -16,10 +16,20 @@ export default function ModalDetalleNivel({ usuario, nivelesConfig = [], onClose
   const utilidadRed = Math.max(0, utilidadCalificacion - utilidadPropia);
   const estaActivo = usuario.estado === 'Activo';
 
-  // 1. Si viene el arreglo directo de compradores_descendientes lo usamos
-  // 2. Si no, construimos la lista única agrupando las ventas por usuario desde desglose_comisiones
-  let listaAportesRed = [];
+  // Usamos los niveles traídos de la base de datos o el fallback si viene vacío
+  const listaNivelesBruta = nivelesConfig.length > 0 ? nivelesConfig : NIVELES_DEFAULT;
 
+  // Garantizamos conversión numérica explícita para evitar errores de comparación de tipos
+  const nivelesOrdenados = [...listaNivelesBruta]
+    .map(n => ({
+      nivel: Number(n.nivel),
+      umbral: Number(n.umbral || 0),
+      porcentaje_propio: Number(n.porcentaje_propio || 0)
+    }))
+    .sort((a, b) => a.nivel - b.nivel);
+
+  // Consolidación de compras de red
+  let listaAportesRed = [];
   if (usuario.compradores_descendientes && usuario.compradores_descendientes.length > 0) {
     listaAportesRed = usuario.compradores_descendientes.map(item => ({
       id: item.id,
@@ -28,7 +38,6 @@ export default function ModalDetalleNivel({ usuario, nivelesConfig = [], onClose
       monto: Number(item.aporte_compra || 0)
     }));
   } else {
-    // Agrupar por ID único de origen para evitar duplicados por tipo de bono/comisión
     const mapaUnico = {};
     (usuario.desglose_comisiones || []).forEach(item => {
       const esPropia = item.tipo?.toLowerCase().includes('propia') || String(item.origen_id) === String(usuario.id);
@@ -46,20 +55,18 @@ export default function ModalDetalleNivel({ usuario, nivelesConfig = [], onClose
     listaAportesRed = Object.values(mapaUnico);
   }
 
-  // Suma total de los ítems en la tabla
   const sumaTotalLista = listaAportesRed.reduce((acc, curr) => acc + curr.monto, 0);
 
-  // Configuración de niveles
-  const listaNiveles = nivelesConfig.length > 0 ? nivelesConfig : NIVELES_DEFAULT;
-  const nivelesOrdenados = [...listaNiveles].sort((a, b) => Number(a.nivel) - Number(b.nivel));
-  
   const nivelActual = Number(usuario.nivel || 0);
   const nivelMaximoEstructura = nivelesOrdenados.length > 0 
-    ? Math.max(...nivelesOrdenados.map(n => Number(n.nivel))) 
+    ? Math.max(...nivelesOrdenados.map(n => n.nivel)) 
     : 4;
 
-  const siguienteNivelConfig = nivelesOrdenados.find(n => Number(n.nivel) > nivelActual);
-  const esNivelMaximo = nivelActual >= nivelMaximoEstructura;
+  // Identifica el siguiente nivel cuyo umbral configurado aún NO haya sido alcanzado por el usuario
+  const siguienteNivelConfig = nivelesOrdenados.find(n => n.umbral > utilidadCalificacion);
+  
+  // Es nivel máximo si su nivel actual es el tope O si ya superó el umbral máximo registrado
+  const esNivelMaximo = nivelActual >= nivelMaximoEstructura || !siguienteNivelConfig;
 
   return (
     <div style={{
@@ -132,7 +139,7 @@ export default function ModalDetalleNivel({ usuario, nivelesConfig = [], onClose
             </div>
           </div>
 
-          {/* Resumen Principal de Calificación */}
+          {/* Resumen Principal */}
           <h4 style={{ margin: '0 0 10px 0', color: '#334155', fontSize: '14px', fontWeight: '700' }}>
             ¿Por qué calificó en este nivel?
           </h4>
@@ -184,7 +191,6 @@ export default function ModalDetalleNivel({ usuario, nivelesConfig = [], onClose
                 DETALLE DE APORTES DE LA RED DESCENDENTE ({listaAportesRed.length} COMPRADORES)
               </h5>
               
-              {/* Contenedor con Scroll para recorrer toda la red */}
               <div style={{ maxHeight: '240px', overflowY: 'auto', paddingRight: '4px' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
                   <thead style={{ position: 'sticky', top: 0, backgroundColor: '#f8fafc', zIndex: 1 }}>
@@ -231,7 +237,7 @@ export default function ModalDetalleNivel({ usuario, nivelesConfig = [], onClose
             </div>
           )}
 
-          {/* Tabla de Umbrales de Calificación */}
+          {/* Tabla Dinámica de Umbrales de Calificación */}
           {nivelesOrdenados.length > 0 && (
             <>
               <h4 style={{ margin: '0 0 10px 0', color: '#334155', fontSize: '14px', fontWeight: '700' }}>
@@ -248,9 +254,9 @@ export default function ModalDetalleNivel({ usuario, nivelesConfig = [], onClose
                 </thead>
                 <tbody>
                   {nivelesOrdenados.map((n) => {
-                    const alcanzado = nivelActual >= Number(n.nivel);
-                    const umbralVal = Number(n.umbral || 0);
-                    const faltante = Math.max(0, umbralVal - utilidadCalificacion);
+                    // Un nivel se marca alcanzado si el nivel del usuario es igual/mayor O si acumuló el dinero suficiente
+                    const alcanzado = nivelActual >= n.nivel || utilidadCalificacion >= n.umbral;
+                    const faltante = Math.max(0, n.umbral - utilidadCalificacion);
 
                     return (
                       <tr key={n.nivel} style={{
@@ -261,10 +267,10 @@ export default function ModalDetalleNivel({ usuario, nivelesConfig = [], onClose
                           Nivel {n.nivel}
                         </td>
                         <td style={{ padding: '8px 10px', color: '#475569' }}>
-                          ${umbralVal.toLocaleString('es-CO')}
+                          ${n.umbral.toLocaleString('es-CO')}
                         </td>
                         <td style={{ padding: '8px 10px', textAlign: 'center', color: '#64748b' }}>
-                          {((Number(n.porcentaje_propio) || 0) * 100).toFixed(1)}%
+                          {(n.porcentaje_propio * 100).toFixed(1)}%
                         </td>
                         <td style={{ padding: '8px 10px', textAlign: 'right', fontWeight: '600' }}>
                           {alcanzado ? (
@@ -283,7 +289,7 @@ export default function ModalDetalleNivel({ usuario, nivelesConfig = [], onClose
 
         </div>
 
-        {/* Pie con Estado / Meta Siguiente Nivel */}
+        {/* Pie del Modal */}
         <div style={{
           padding: '14px 20px', backgroundColor: '#f8fafc', borderTop: '1px solid #e2e8f0',
           fontSize: '13px', color: '#475569'
@@ -293,7 +299,7 @@ export default function ModalDetalleNivel({ usuario, nivelesConfig = [], onClose
           ) : siguienteNivelConfig ? (
             <span>
               💡 Para alcanzar el <strong>Nivel {siguienteNivelConfig.nivel}</strong> necesita acumular{' '}
-              <strong>${Math.max(0, Number(siguienteNivelConfig.umbral) - utilidadCalificacion).toLocaleString('es-CO')}</strong> más en compras propias o de red.
+              <strong>${Math.max(0, siguienteNivelConfig.umbral - utilidadCalificacion).toLocaleString('es-CO')}</strong> más en compras propias o de red.
             </span>
           ) : null}
         </div>

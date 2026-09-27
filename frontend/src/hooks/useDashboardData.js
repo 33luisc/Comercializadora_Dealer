@@ -5,6 +5,7 @@ import { apiService } from '../services/api';
 export function useDashboardData() {
   // Estados de datos primarios
   const [afiliados, setAfiliados] = useState([]);
+  const [nivelesConfig, setNivelesConfig] = useState([]); // <--- 1. NUEVO ESTADO
   const [rentabilidad, setRentabilidad] = useState({
     utilidadGlobal: 0,
     comisionesPagadas: 0,
@@ -50,9 +51,14 @@ export function useDashboardData() {
       const data = await apiService.obtenerDatosIniciales();
       setAfiliados(Array.isArray(data.afiliados) ? data.afiliados : []);
       setRentabilidad(data.rentabilidad || {});
+      
+      // Asigna los niveles guardados en la BD (incluyendo los 11 millones)
+      if (Array.isArray(data.niveles)) {
+        setNivelesConfig(data.niveles);
+      }
+
       setVerHistorico(false);
 
-      // Resetea el selector de fecha al mes y año actual (YYYY-MM)
       const fecha = new Date();
       const año = fecha.getFullYear();
       const mes = String(fecha.getMonth() + 1).padStart(2, '0');
@@ -85,7 +91,6 @@ export function useDashboardData() {
       const margenLibre = utilidadGlobal - totalDistribucion;
       const porcentajeRepartido = utilidadGlobal > 0 ? ((totalDistribucion / utilidadGlobal) * 100).toFixed(2) : '0.00';
 
-      // 🎯 CORRECCIÓN: Filtra los de nivel 0 y suma sus utilidades acumuladas
       const montoSinNivel1 = datosHistoricos
         .filter(item => Number(item.nivel) === 0)
         .reduce((sum, item) => sum + Number(item.utilidad_propia || item.utilidad_acumulada || 0), 0);
@@ -100,23 +105,19 @@ export function useDashboardData() {
       };
     }
 
-    // Si estamos en el mes activo, retorna las métricas directas calculadas en el backend
     return rentabilidad;
   }, [verHistorico, datosHistoricos, rentabilidad]);
 
-  // Función explícita para regresar al mes activo y resetear el calendario
   const handleVerMesActivo = () => {
     cargarDatos();
   };
 
-  // Carga y normalización de periodo histórico guardado
   const cargarPeriodoHistorico = async (periodo) => {
     if (!periodo) return;
     try {
       setErrorMsg('');
       const data = await apiService.consultarHistorico(periodo);
 
-      // Extrae siempre un arreglo válido sin importar si la API responde con un objeto o un array
       const listaExtraida = Array.isArray(data)
         ? data
         : (data?.afiliados || data?.usuarios || []);
@@ -134,7 +135,6 @@ export function useDashboardData() {
     }
   };
 
-  // Registro de nuevo afiliado
   const handleRegisterAfiliado = async (e, formData, setFormData) => {
     e.preventDefault();
     setErrorMsg('');
@@ -158,7 +158,6 @@ export function useDashboardData() {
     }
   };
 
-  // Edición de información del afiliado
   const handleUpdateAfiliado = async (datosActualizados) => {
     setErrorMsg('');
     setSuccessMsg('');
@@ -176,7 +175,6 @@ export function useDashboardData() {
     }
   };
 
-  // Agregar utilidad / compra
   const handleAddTransaccion = async (e) => {
     e.preventDefault();
     setErrorMsg('');
@@ -190,7 +188,6 @@ export function useDashboardData() {
     }
   };
 
-  // Ejecutar congelamiento y cierre de mes
   const handleCierreMes = async () => {
     if (window.confirm(`¿Estás seguro de cerrar el periodo ${periodoCierre}? Esto congelará las comisiones y reiniciará el mes a $0.`)) {
       setErrorMsg('');
@@ -205,7 +202,6 @@ export function useDashboardData() {
     }
   };
 
-  // Eliminar afiliado
   const handleDelete = async (id) => {
     if (window.confirm("¿Deseas eliminar este afiliado de la red?")) {
       setErrorMsg('');
@@ -220,7 +216,6 @@ export function useDashboardData() {
     }
   };
 
-  // Cargar historial de compras/transacciones por usuario
   const cargarBitacoraAfiliado = async (afiliado) => {
     try {
       setErrorMsg('');
@@ -235,8 +230,9 @@ export function useDashboardData() {
 
   return {
     afiliados,
+    nivelesConfig, // <--- 3. EXPORTAR EL ESTADO
     rentabilidad,
-    resumenAMostrar, // Exponemos la métrica calculada
+    resumenAMostrar,
     periodoCierre,
     setPeriodoCierre,
     errorMsg,

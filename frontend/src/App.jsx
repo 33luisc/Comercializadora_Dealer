@@ -1,4 +1,3 @@
-// src/App.jsx
 import { useState, useEffect } from 'react';
 import { useDashboardData } from './hooks/useDashboardData';
 import NotificationToasts from './components/NotificationToasts';
@@ -6,7 +5,7 @@ import RegisterMemberForm from './components/RegisterMemberForm';
 import TransactionModal from './components/TransactionModal';
 import LogModal from './components/LogModal';
 import ModalDetalleComision from './components/ModalDetalleComision';
-import ModalDetalleNivel from './components/ModalDetalleNivel'; // 1. IMPORTAR EL NUEVO MODAL
+import ModalDetalleNivel from './components/ModalDetalleNivel';
 import MembersTable from './components/MembersTable';
 import NetworkTree from './components/NetworkTree/NetworkTree';
 import DashboardControls from './components/DashboardControls';
@@ -18,7 +17,7 @@ function App() {
   const {
     afiliados,
     rentabilidad,
-    resumenAMostrar, // Extraemos el resumen dinámico/calculado
+    resumenAMostrar,
     periodoCierre,
     setPeriodoCierre,
     errorMsg,
@@ -27,6 +26,7 @@ function App() {
     setSuccessMsg,
     modalOpen,
     setModalOpen,
+    nivelesConfig, // <-- Arreglo de niveles cargado dinámicamente desde el hook
     selectedAfiliado,
     setSelectedAfiliado,
     transData,
@@ -58,18 +58,13 @@ function App() {
     id_patrocinador: ''
   });
 
-  // Estados de vista y autenticación
   const [vistaActiva, setVistaActiva] = useState('tabla'); 
   const [adminUser, setAdminUser] = useState(null);
   const [cargandoSesion, setCargandoSesion] = useState(true);
 
-  // Estado para el modal de comisiones
   const [usuarioComisionSeleccionado, setUsuarioComisionSeleccionado] = useState(null);
-
-  // 2. NUEVO ESTADO PARA EL MODAL DE DESGLOSE DE NIVEL
   const [usuarioNivelSeleccionado, setUsuarioNivelSeleccionado] = useState(null);
 
-  // 1. Cargar sesión activa usando sessionStorage
   useEffect(() => {
     const savedUser = sessionStorage.getItem('adminUser');
     const token = sessionStorage.getItem('adminToken');
@@ -84,7 +79,6 @@ function App() {
     setCargandoSesion(false);
   }, []);
 
-  // 2. Manejador del Cierre de Sesión Manual
   const handleLogout = () => {
     sessionStorage.removeItem('adminToken');
     sessionStorage.removeItem('adminUser');
@@ -92,7 +86,6 @@ function App() {
     setVistaActiva('tabla');
   };
 
-  // 1. PANTALLA DE CARGA DE SESIÓN
   if (cargandoSesion) {
     return (
       <div style={{ padding: '40px', textAlign: 'center', fontFamily: 'sans-serif', color: '#6b7280' }}>
@@ -101,7 +94,6 @@ function App() {
     );
   }
 
-  // 2. BLOQUEO DE SEGURIDAD
   if (!adminUser) {
     return (
       <div className="min-h-screen bg-gray-50/50 flex flex-col justify-center items-center font-sans">
@@ -123,7 +115,6 @@ function App() {
     );
   }
 
-  // 3. APLICACIÓN PRINCIPAL
   return (
     <div className="min-h-screen bg-gray-50/50 text-gray-900 antialiased font-sans pb-12">
       
@@ -145,7 +136,6 @@ function App() {
       {/* CUERPO PRINCIPAL */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
-        {/* NAVEGACIÓN Y CONTROLES DEL DASHBOARD */}
         {vistaActiva !== 'config' && (
           <DashboardControls 
             rentabilidad={resumenAMostrar || rentabilidad} 
@@ -163,7 +153,7 @@ function App() {
           />
         )}
 
-        {/* VISTA 1: PANEL DE CONFIGURACIÓN DE PARÁMETROS */}
+        {/* VISTA 1: CONFIGURACIÓN */}
         {vistaActiva === 'config' && (
           <div className="mt-6">
             <div className="mb-4">
@@ -189,18 +179,17 @@ function App() {
             </div>
 
             <AdminConfigPanel 
-              onConfigSaved={cargarDatos}
+              onConfigSaved={cargarDatos} // Carga de nuevo la configuración para refrescar los $11M en tiempo real
               setSuccessMsg={setSuccessMsg}
               setErrorMsg={setErrorMsg}
             />
           </div>
         )}
 
-        {/* VISTA 2: VISTA PRINCIPAL (TABLA / ÁRBOL DE RED) */}
+        {/* VISTA 2: TABLA Y ÁRBOL */}
         {(vistaActiva === 'tabla' || vistaActiva === 'arbol') && (
           <div className="mt-6 flex flex-col lg:flex-row gap-6 items-start w-full">
             
-            {/* Columna Izquierda: Formulario */}
             <div className="w-full lg:w-[280px] lg:flex-shrink-0 bg-white p-5 rounded-2xl box-border">
               <RegisterMemberForm 
                 formData={formData} 
@@ -210,7 +199,6 @@ function App() {
               />
             </div>
 
-            {/* Columna Derecha: Tabla o Árbol */}
             <div className="w-full flex-1 min-w-0 bg-white p-5 rounded-2xl box-border overflow-hidden">
               {vistaActiva === 'tabla' ? (
                 <MembersTable 
@@ -222,7 +210,7 @@ function App() {
                   onDelete={handleDelete}
                   onOpenTransaccion={(a) => { setSelectedAfiliado(a); setModalOpen(true); }}
                   onOpenDetalleComision={(a) => setUsuarioComisionSeleccionado(a)}
-                  onOpenDetalleNivel={(a) => setUsuarioNivelSeleccionado(a)} // 3. PROP AGREGADA
+                  onOpenDetalleNivel={(a) => setUsuarioNivelSeleccionado(a)}
                   onSaveEdit={handleUpdateAfiliado}
                 />
               ) : (
@@ -232,7 +220,7 @@ function App() {
                   onOpenBitacora={cargarBitacoraAfiliado}
                   onOpenTransaccion={(a) => { setSelectedAfiliado(a); setModalOpen(true); }}
                   onOpenDetalleComision={(a) => setUsuarioComisionSeleccionado(a)}
-                  onOpenDetalleNivel={(a) => setUsuarioNivelSeleccionado(a)} // 3. PROP AGREGADA (OPCIONAL SI EL ÁRBOL LO USA)
+                  onOpenDetalleNivel={(a) => setUsuarioNivelSeleccionado(a)}
                 />
               )}
             </div>
@@ -263,9 +251,10 @@ function App() {
         onClose={() => setUsuarioComisionSeleccionado(null)}
       />
 
-      {/* 4. RENDERIZADO DEL NUEVO MODAL DE DETALLE DE NIVEL */}
+      {/* MODAL DETALLE NIVEL CON NIVELES DINÁMICOS */}
       <ModalDetalleNivel 
         usuario={usuarioNivelSeleccionado}
+        nivelesConfig={nivelesConfig} // Pasa los niveles actualizados
         onClose={() => setUsuarioNivelSeleccionado(null)}
       />
     </div>
