@@ -13,7 +13,7 @@ function NetworkTree({
 }) {
   const [filtro, setFiltro] = useState('');
   
-  // Usamos un objeto con timestamp para asegurar que el efecto React detecte siempre los clics
+  // Objeto con timestamp para asegurar que el efecto React detecte siempre los clics de expansión/colapso
   const [controlExpandir, setControlExpandir] = useState({ expandir: false, timestamp: Date.now() });
 
   const { containerRef, isMouseDown, dragHandlers } = useDragScroll();
@@ -34,46 +34,71 @@ function NetworkTree({
     setControlExpandir({ expandir: false, timestamp: Date.now() });
   };
 
-  // Coincidencias de búsqueda
+  // 1. Identificar coincidencia principal (Nodo buscado)
   const coincidenciaIds = new Set();
-  const q = limpiarTexto(filtro.trim());
+  const terminoOriginal = filtro.trim();
 
-  if (q) {
-    afiliados.forEach(a => {
-      const nombreCompleto = limpiarTexto(`${a.nombre || ''} ${a.apellido || ''}`);
-      const cedula = limpiarTexto(a.cedula);
-      const celular = limpiarTexto(a.celular);
-      const id = limpiarTexto(a.id);
+  if (terminoOriginal) {
+    if (terminoOriginal.startsWith('#')) {
+      // CASO 1: Búsqueda exacta por ID usando "#"
+      const idBuscado = terminoOriginal.substring(1).trim();
 
-      if (nombreCompleto.includes(q) || cedula.includes(q) || celular.includes(q) || id.includes(q)) {
-        coincidenciaIds.add(a.id);
+      if (idBuscado) {
+        afiliados.forEach(a => {
+          if (String(a.id) === idBuscado) {
+            coincidenciaIds.add(a.id);
+          }
+        });
       }
-    });
+    } else {
+      // CASO 2: Búsqueda tradicional por Nombre, Cédula o Celular
+      const q = limpiarTexto(terminoOriginal);
+
+      afiliados.forEach(a => {
+        const nombreCompleto = limpiarTexto(`${a.nombre || ''} ${a.apellido || ''}`);
+        const cedula = limpiarTexto(a.cedula);
+        const celular = limpiarTexto(a.celular);
+
+        if (nombreCompleto.includes(q) || cedula.includes(q) || celular.includes(q)) {
+          coincidenciaIds.add(a.id);
+        }
+      });
+    }
   }
 
+  // 2. Construir la vista enfocada (Nodo + Padres + Hijos directos)
   const idsVisibles = new Set(coincidenciaIds);
 
-  if (q) {
+  if (terminoOriginal && coincidenciaIds.size > 0) {
     coincidenciaIds.forEach(idEncontrado => {
       const miembroActual = afiliados.find(a => Number(a.id) === Number(idEncontrado));
 
       if (miembroActual) {
-        if (miembroActual.id_patrocinador) {
-          const padreDirecto = afiliados.find(a => Number(a.id) === Number(miembroActual.id_patrocinador));
-          if (padreDirecto) {
-            idsVisibles.add(padreDirecto.id);
+        // A. Recorrer la cadena de ascendientes hacia arriba hasta la raíz
+        let idPadre = miembroActual.id_patrocinador;
+        while (idPadre && Number(idPadre) !== 0) {
+          const padre = afiliados.find(a => Number(a.id) === Number(idPadre));
+          if (padre) {
+            idsVisibles.add(padre.id);
+            idPadre = padre.id_patrocinador;
+          } else {
+            break;
           }
         }
+
+        // B. Agregar solo sus hijos directos
         const hijosDirectos = afiliados.filter(a => Number(a.id_patrocinador) === Number(miembroActual.id));
         hijosDirectos.forEach(hijo => idsVisibles.add(hijo.id));
       }
     });
   }
 
-  const afiliadosVisibles = q 
+  // Lista de afiliados que se van a dibujar
+  const afiliadosVisibles = terminoOriginal 
     ? afiliados.filter(a => idsVisibles.has(a.id))
     : afiliados;
 
+  // Raíces del árbol a renderizar
   const raices = afiliadosVisibles.filter(a => 
     !a.id_patrocinador || 
     Number(a.id_patrocinador) === 0 || 
@@ -88,7 +113,7 @@ function NetworkTree({
         <div style={{ position: 'relative', flex: '1', minWidth: '240px', maxWidth: '380px' }}>
           <input 
             type="text" 
-            placeholder="Buscar en la red por nombre, CC o ID..."
+            placeholder="Buscar por nombre, CC o #ID (ej. #1)..."
             value={filtro}
             onChange={handleFilterChange}
             style={{ 
@@ -148,10 +173,10 @@ function NetworkTree({
         ) : (
           <div className="tree-container">
             {raices.map(raiz => (
-                <NodoArbol 
+              <NodoArbol 
                 key={raiz.id} 
                 miembro={raiz} 
-                todosLosAfiliados={afiliados} 
+                todosLosAfiliados={afiliadosVisibles} 
                 controlExpandir={controlExpandir}
                 coincidenciaIds={coincidenciaIds}
                 onOpenDetalleComision={onOpenDetalleComision}

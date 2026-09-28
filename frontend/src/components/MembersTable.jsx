@@ -55,25 +55,35 @@ function MembersTable({
   const listaOriginal = verHistorico ? datosHistoricos : afiliados;
 
   const listaFiltrada = listaOriginal.filter(a => {
-    if (!busqueda.trim()) return true;
+    const termino = busqueda.trim();
+    if (!termino) return true;
 
+    // CASO 1: Búsqueda explícita por ID usando "#"
+    if (termino.startsWith('#')) {
+      const idBuscado = termino.substring(1).trim(); // Remueve el '#'
+      
+      if (!idBuscado) return false; // Si solo escribió "#", no muestra resultados hasta poner el número
+
+      // Búsqueda EXACTA por ID
+      return String(a.id || '') === idBuscado;
+    }
+
+    // CASO 2: Búsqueda tradicional por Nombre, Cédula o Celular
     const limpiarTexto = (texto) => 
       String(texto || '')
         .toLowerCase()
         .normalize("NFD")
         .replace(/[\u0300-\u036f]/g, "");
 
-    const q = limpiarTexto(busqueda.trim());
+    const q = limpiarTexto(termino);
     const nombreCompleto = limpiarTexto(`${a.nombre || ''} ${a.apellido || ''}`);
     const cedula = limpiarTexto(a.cedula);
     const celular = limpiarTexto(a.celular);
-    const id = limpiarTexto(a.id);
 
     return (
       nombreCompleto.includes(q) || 
       cedula.includes(q) || 
-      celular.includes(q) || 
-      id.includes(q)
+      celular.includes(q)
     );
   });
 
